@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "LoadTools.h"
 #include "PageEditParam.h"
+#include "EnvJson.h"
 #include "Base.h"
 
 #ifdef _DEBUG
@@ -73,14 +74,14 @@ int g_iScrollParamContent[SCROLL_STEP_LEN] = {
 IMPLEMENT_DYNCREATE(CPageEditParam, CPropertyPage)
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 CPageEditParam::CPageEditParam() : CPropertyPage(CPageEditParam::IDD)
 {
@@ -122,14 +123,14 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CPageEditParam message handlers
 /****************************************************************************
-  º¯ÊýÃû     :  BOOL CPageEditParam::OnInitDialog()
-  ÃèÊö       :  ´°¿Ú³õÊ¼»¯º¯Êý
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  TRUE / FALSE
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  BOOL CPageEditParam::OnInitDialog()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Ú³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  TRUE / FALSE
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 BOOL CPageEditParam::OnInitDialog()
 {
@@ -177,6 +178,11 @@ BOOL CPageEditParam::OnInitDialog()
         sprintf(strTemp, "%d", iLen);
         SetDlgItemText(g_iScrollParamLen[i], strTemp);
     }
+    for (i=0; i<SCROLL_STEP_LEN; i++)
+    {
+        ((CEdit*)GetDlgItem(g_iScrollParamName[i]))->SetLimitText(PARAM_NAME_MAX_LEN);
+        ((CEdit*)GetDlgItem(g_iScrollParamContent[i]))->SetLimitText(PARAM_CONTENT_MAX_LEN);
+    }
     m_strParamFilePath.Format(g_sConfigreInfo.m_strParamEditFilepath);
     UpdateData(FALSE);
     m_dwTimer = SetTimer(1, 200, 0);
@@ -203,14 +209,14 @@ BOOL CPageEditParam::IsThreadRun()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  À¹½ØÓÃ»§ÇÐ»»ÊôÐÔÒ³ÊÂ¼þ£¬ÔÚÓÃ»§ÇÐ»»ÊôÐÔÒ³Ö®Ç°ÌáÊ¾ÓÃ»§±£´æµ±Ç°ÐÞ¸Ä
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò³ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½Ð»ï¿½ï¿½ï¿½ï¿½ï¿½Ò³Ö®Ç°ï¿½ï¿½Ê¾ï¿½Ã»ï¿½ï¿½ï¿½ï¿½æµ±Ç°ï¿½Þ¸ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 BOOL CPageEditParam::OnKillActive() 
 {
@@ -234,17 +240,17 @@ BOOL CPageEditParam::OnKillActive()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  void CPageEditParam::OnVScroll(UINT nSBCode, UINT nPos, 
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void CPageEditParam::OnVScroll(UINT nSBCode, UINT nPos, 
                                    CScrollBar* pScrollBar) 
-  ÃèÊö       :  ´¹Ö±»¬¿éÊÂ¼þÏìÓ¦º¯Êý
-  ÊäÈë²ÎÊý   :  1¡¢UINT nSBCode£ºÊÂ¼þÀàÐÍ
-                2¡¢UINT nPos£ºÏìÓ¦ÊÂ¼þÇ°µÄÎ»ÖÃ
-                3¡¢CScrollBar* pScrollBar£ºÏìÓ¦ÊÂ¼þµÄ»¬¿éÖ¸Õë
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½Ö±ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  1ï¿½ï¿½UINT nSBCodeï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½
+                2ï¿½ï¿½UINT nPosï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Â¼ï¿½Ç°ï¿½ï¿½Î»ï¿½ï¿½
+                3ï¿½ï¿½CScrollBar* pScrollBarï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Â¼ï¿½ï¿½Ä»ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar) 
 {
@@ -288,14 +294,14 @@ void CPageEditParam::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  void CPageEditParam::OnButtonOpenSaveParamFile()
-  ÃèÊö       :  ÏìÓ¦´ò¿ªÎÄ¼þ°´Å¥
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void CPageEditParam::OnButtonOpenSaveParamFile()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½Å¥
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::OnButtonOpenSaveParamFile() 
 {
@@ -309,82 +315,95 @@ void CPageEditParam::OnButtonOpenSaveParamFile()
     {
         m_strParamFilePath = dlg.GetPathName();
         strcpy(g_sConfigreInfo.m_strParamEditFilepath, 
-            m_strParamFilePath.GetBuffer(0));  // ¸üÐÂÅäÖÃÄÚÈÝ
-        UpdateData(FALSE);    // ¸üÐÂ½çÃæ
-        ReadParamFile();      // ¶ÁÈ¡²ÎÊýÎÄ¼þÄÚÈÝ
+            m_strParamFilePath.GetBuffer(0));  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        UpdateData(FALSE);    // ï¿½ï¿½ï¿½Â½ï¿½ï¿½ï¿½
+        ReadParamFile();      // ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
         BufferToInterface();
     }
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  void CPageEditParam::OnButtonSaveParam()
-  ÃèÊö       :  ÏìÓ¦²ÎÊý±£´æ°´¼ü
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void CPageEditParam::OnButtonSaveParam()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ°´ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::OnButtonSaveParam() 
 {
     // TODO: Add your control notification handler code here
     InterfaceToBuffer();
-    SaveConfigInfo();  // ±£´æÅäÖÃÐÅÏ¢
-    SaveParamFile();   // ±£´æ²ÎÊýÎÄ¼þÄÚÈÝ
+    SaveConfigInfo();  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    SaveParamFile();   // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
     m_bEditChangeFlag = FALSE;
     GetDlgItem(IDC_BUTTON_SAVE_PARAM)->EnableWindow(FALSE);
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  void CPageEditParam::ReadParamFile()
-  ÃèÊö       :  ¶ÁÈ¡²ÎÊýÎÄ¼þÄÚÈÝ£¬½«¶ÁÈ¡µÄÄÚÈÝ±£´æµ½»º³åÇøÖÐ
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-04   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void CPageEditParam::ReadParamFile()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½Ý±ï¿½ï¿½æµ½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-04   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::ReadParamFile()
 {
-    FILE *fp;
+    int iRet;
 
     m_iStartLine = 0;
+    m_iParamLineNumber = 0;
+    memset(m_sParamStruct, 0, sizeof(m_sParamStruct));
 
-    memset(m_sParamStruct, 0, MAX_PARAM_NUMBER*PARAM_ITEM_LEN);
-    // ¶ÁÈ¡ÅäÖÃÎÄ¼þ£¬ÒªÏÈÈ·±£ÅäÖÃÎÄ¼þÂ·¾¶²»Îª¿Õ
     if (0 != strlen(g_sConfigreInfo.m_strParamEditFilepath))
     {
-        fp = fopen(g_sConfigreInfo.m_strParamEditFilepath, "rb");
-        if (NULL != fp)
+        iRet = EnvJsonLoadFile(g_sConfigreInfo.m_strParamEditFilepath,
+            m_sParamStruct, MAX_PARAM_NUMBER);
+        if (iRet < 0)
         {
-            (void)fread(m_sParamStruct, 1, MAX_PARAM_NUMBER*PARAM_ITEM_LEN, fp);
-            fclose(fp);
+            if (-2 == iRet)
+            {
+                /* File missing is OK on first open. */
+            }
+            else
+            {
+                MessageBox("The file is not a valid JSON ENV param file!");
+            }
+            memset(m_sParamStruct, 0, sizeof(m_sParamStruct));
+            m_iParamLineNumber = 0;
+        }
+        else
+        {
+            m_iParamLineNumber = iRet;
         }
     }
 }
 
-
 /****************************************************************************
-  º¯ÊýÃû     :  void CPageEditParam::SaveParamFile()
-  ÃèÊö       :  ±£´æ²ÎÊýÎÄ¼þÄÚÈÝ£¬±£´æÖ®Ç°ÏÈÉ¾³ýÎÄ¼þ
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-03   V1.0        ´´½¨
+
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void CPageEditParam::SaveParamFile()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½Ö®Ç°ï¿½ï¿½É¾ï¿½ï¿½ï¿½Ä¼ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-03   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::SaveParamFile()
 {
-    FILE *fp;
     int i, iLen;
+    int iRet;
 
-    // ²éÕÒÓÐÐ§µÄ²ÎÊý¿ªÊ¼Î»ÖÃ
-    for (i=MAX_PARAM_NUMBER; i>0; i--)
+    m_iParamLineNumber = 0;
+    for (i = MAX_PARAM_NUMBER; i > 0; i--)
     {
-        iLen = strlen(m_sParamStruct[i-1].strName);
+        iLen = (int)strlen(m_sParamStruct[i - 1].strName);
         if (0 != iLen)
         {
             m_iParamLineNumber = i;
@@ -392,49 +411,39 @@ void CPageEditParam::SaveParamFile()
         }
     }
 
-    // ±£´æÅäÖÃÎÄ¼þ£¬ÒªÏÈÈ·±£ÅäÖÃÎÄ¼þÂ·¾¶²»Îª¿Õ
     if (0 != strlen(g_sConfigreInfo.m_strParamEditFilepath))
     {
-        DeleteFile(g_sConfigreInfo.m_strParamEditFilepath);  // ÏÈÉ¾³ý²ÎÊýÎÄ¼þ
-        fp = fopen(g_sConfigreInfo.m_strParamEditFilepath, "wb");
-        if (NULL != fp)
-        {
-            fseek(fp, 0, SEEK_SET);
-            fwrite(m_sParamStruct, 1, 
-                m_iParamLineNumber*PARAM_ITEM_LEN, fp);
-            fclose(fp);
-        }
-        else
+        DeleteFile(g_sConfigreInfo.m_strParamEditFilepath);
+        iRet = EnvJsonSaveFile(g_sConfigreInfo.m_strParamEditFilepath,
+            m_sParamStruct, m_iParamLineNumber);
+        if (0 != iRet)
         {
             MessageBox("Save param file fault!");
         }
     }
     else
     {
-        // TODO: Add your control notification handler code here
-	    static char BASED_CODE szMergeFilter[] = _T("Save file(*.env)||_*.env||)");
+        static char BASED_CODE szMergeFilter[] = _T("Save file(*.env)|*.env||");
         CString filter;
         filter = szMergeFilter;
 
-        CFileDialog dlg(FALSE, NULL, m_strParamFilePath, OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST,filter, 0);
+        CFileDialog dlg(FALSE, NULL, m_strParamFilePath,
+            OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, 0);
         if (dlg.DoModal() == IDOK)
         {
             m_strParamFilePath = dlg.GetPathName();
-            strcpy(g_sConfigreInfo.m_strParamEditFilepath, 
-                m_strParamFilePath.GetBuffer(0));  // ¸üÐÂÅäÖÃÄÚÈÝ
-
-            UpdateData(FALSE);    // ¸üÐÂ½çÃæ
-
-            DeleteFile(g_sConfigreInfo.m_strParamEditFilepath);  // ÏÈÉ¾³ý²ÎÊýÎÄ¼þ
-            fp = fopen(g_sConfigreInfo.m_strParamEditFilepath, "wb");
-            if (NULL != fp)
+            if (m_strParamFilePath.Right(4).CompareNoCase(_T(".env")) != 0)
             {
-                fseek(fp, 0, SEEK_SET);
-                fwrite(m_sParamStruct, 1, 
-                    m_iParamLineNumber*PARAM_ITEM_LEN, fp);
-                fclose(fp);
+                m_strParamFilePath += _T(".env");
             }
-            else
+            strcpy(g_sConfigreInfo.m_strParamEditFilepath,
+                m_strParamFilePath.GetBuffer(0));
+            UpdateData(FALSE);
+
+            DeleteFile(g_sConfigreInfo.m_strParamEditFilepath);
+            iRet = EnvJsonSaveFile(g_sConfigreInfo.m_strParamEditFilepath,
+                m_sParamStruct, m_iParamLineNumber);
+            if (0 != iRet)
             {
                 MessageBox("Save param file fault!");
             }
@@ -443,24 +452,18 @@ void CPageEditParam::SaveParamFile()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ½«½çÃæÉÏµÄÊý¾Ý¸üÐÂµ½»º³åÇøÄÚ
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-05   V1.0        ´´½¨
+  Function     :  void CPageEditParam::InterfaceToBuffer()
+  Description  :  Copy UI fields into the param buffer
 ****************************************************************************/
 void CPageEditParam::InterfaceToBuffer()
 {
     int i;
-    char strTemp[PARAM_ITEM_LEN];
+    char strTemp[PARAM_TEMP_BUF_LEN];
 
-    // ½«½çÃæÉÏµÄÊý¾ÝÈ«²¿¿½±´ÏÂÀ´
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     for (i=0; i<SCROLL_STEP_LEN; i++)
     {
-        GetDlgItemText(g_iScrollParamName[i], strTemp, PARAM_ITEM_LEN);
+        GetDlgItemText(g_iScrollParamName[i], strTemp, PARAM_TEMP_BUF_LEN);
         strTemp[PARAM_NAME_LEN-1] = 0;
         if (0 != strcmp(m_sParamStruct[m_iStartLine+i].strName,strTemp))
         {
@@ -470,7 +473,7 @@ void CPageEditParam::InterfaceToBuffer()
             GetDlgItem(IDC_BUTTON_SAVE_PARAM)->EnableWindow(TRUE);
         }
 
-        GetDlgItemText(g_iScrollParamContent[i], strTemp, PARAM_ITEM_LEN);
+        GetDlgItemText(g_iScrollParamContent[i], strTemp, PARAM_TEMP_BUF_LEN);
         strTemp[PARAM_CONTENT_LEN-1] = 0;
         if (0 != strcmp(m_sParamStruct[m_iStartLine+i].strContent,strTemp))
         {
@@ -483,25 +486,25 @@ void CPageEditParam::InterfaceToBuffer()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ½«»º³åÄÚµÄÊý¾Ý¸üÐÂµ½½çÃæÉÏ
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-05   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Úµï¿½ï¿½ï¿½ï¿½Ý¸ï¿½ï¿½Âµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-05   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::BufferToInterface()
 {
     int i, iLen, iLen2;
-    char strTemp[PARAM_ITEM_LEN];
-    char strInterface[PARAM_ITEM_LEN];
+    char strTemp[PARAM_TEMP_BUF_LEN];
+    char strInterface[PARAM_TEMP_BUF_LEN];
 
-    // ÏÔÊ¾ÓÐÐ§µÄ²ÎÊýÏîÐÅÏ¢
+    // ï¿½ï¿½Ê¾ï¿½ï¿½Ð§ï¿½Ä²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
     for (i=0; i<SCROLL_STEP_LEN; i++)
     {
-        GetDlgItemText(g_iScrollNumberID[i], strInterface, PARAM_ITEM_LEN);
+        GetDlgItemText(g_iScrollNumberID[i], strInterface, PARAM_TEMP_BUF_LEN);
         sprintf(strTemp, "%d", m_iStartLine+i+1);
         if (0 != strcmp(strTemp, strInterface))
         {
@@ -510,7 +513,7 @@ void CPageEditParam::BufferToInterface()
             ((CEdit*)GetDlgItem(g_iScrollNumberID[i]))->SetSel(iLen, iLen);
         }
 
-        GetDlgItemText(g_iScrollParamContent[i], strInterface, PARAM_ITEM_LEN);
+        GetDlgItemText(g_iScrollParamContent[i], strInterface, PARAM_TEMP_BUF_LEN);
         if (0 != strcmp(m_sParamStruct[m_iStartLine+i].strContent,strInterface))
         {
             SetDlgItemText(g_iScrollParamContent[i], m_sParamStruct[m_iStartLine+i].strContent);
@@ -518,7 +521,7 @@ void CPageEditParam::BufferToInterface()
             ((CEdit*)GetDlgItem(g_iScrollParamContent[i]))->SetSel(iLen, iLen);
         }
 
-        GetDlgItemText(g_iScrollParamName[i], strInterface, PARAM_ITEM_LEN);
+        GetDlgItemText(g_iScrollParamName[i], strInterface, PARAM_TEMP_BUF_LEN);
         iLen = strlen(m_sParamStruct[m_iStartLine+i].strName);
         if (0 != strcmp(m_sParamStruct[m_iStartLine+i].strName,strInterface))
         {
@@ -540,19 +543,19 @@ void CPageEditParam::BufferToInterface()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ½çÃæÊäÈëºÏ·¨ÐÔ¼ì²éº¯Êý
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-05   V1.0        ´´½¨
-  2¡¢ »Æ¿¡±ó     2008-05-15   V1.1        ÐÞ¸ÄÊ¹Ö®ÄÜ¹»¿½±´²ÎÊýÄÚÈÝ
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï·ï¿½ï¿½Ô¼ï¿½éº¯ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-05   V1.0        ï¿½ï¿½ï¿½ï¿½
+  2ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2008-05-15   V1.1        ï¿½Þ¸ï¿½Ê¹Ö®ï¿½Ü¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::InterfaceValidCheck()
 {
-    char strTemp[128];
+    char strTemp[PARAM_TEMP_BUF_LEN];
     int i, iLen;
     int iFlag;
 
@@ -560,11 +563,11 @@ void CPageEditParam::InterfaceValidCheck()
 
     iFlag = 0;
 
-    // ²ÎÊýÃû×Ö×Ö·û´®³¬³¤¼ì²é£¬²¢¶Ô³¬³¤²¿·Ö½øÐÐ½Ø¶Ï
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½Ô³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½Ð½Ø¶ï¿½
     for (i=0; i<SCROLL_STEP_LEN; i++)
     {
-        GetDlgItemText(g_iScrollParamName[i], strTemp, PARAM_ITEM_LEN);
-        strTemp[PARAM_ITEM_LEN-1] = 0;
+        GetDlgItemText(g_iScrollParamName[i], strTemp, PARAM_TEMP_BUF_LEN);
+        strTemp[PARAM_TEMP_BUF_LEN-1] = 0;
         iLen = strlen(strTemp);
         if (iLen > PARAM_NAME_MAX_LEN)
         {
@@ -576,11 +579,11 @@ void CPageEditParam::InterfaceValidCheck()
         }
     }
 
-    // ²ÎÊýÊý¾Ý×Ö·û´®³¬³¤¼ì²é£¬²¢¶Ô³¬³¤²¿·Ö½øÐÐ½Ø¶Ï
+    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é£¬ï¿½ï¿½ï¿½Ô³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½ï¿½Ð½Ø¶ï¿½
     for (i=0; i<SCROLL_STEP_LEN; i++)
     {
-        GetDlgItemText(g_iScrollParamContent[i], strTemp, PARAM_ITEM_LEN);
-        strTemp[PARAM_ITEM_LEN-1] = 0;
+        GetDlgItemText(g_iScrollParamContent[i], strTemp, PARAM_TEMP_BUF_LEN);
+        strTemp[PARAM_TEMP_BUF_LEN-1] = 0;
         iLen = strlen(strTemp);
         if (iLen > PARAM_CONTENT_MAX_LEN)
         {
@@ -598,14 +601,14 @@ void CPageEditParam::InterfaceValidCheck()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  Êó±ê»¬ÂÖÏìÓ¦º¯Êý
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-05   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ê»¬ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-05   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 BOOL CPageEditParam::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) 
 {
@@ -647,14 +650,14 @@ BOOL CPageEditParam::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ¶¨Ê±¼ì²éÏìÓ¦º¯Êý£¬Ã¿200ºÁÃëÏìÓ¦Ò»´Î
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-09-05   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã¿200ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦Ò»ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-09-05   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void CPageEditParam::OnTimer(UINT nIDEvent) 
 {

@@ -18,15 +18,18 @@
 #define LANGE_ENGLISH   1
 
 
-// ÎÄ¼þÀàÐÍ
-#define FILE_TYPE_BOOT           0
-#define FILE_TYPE_VOS            1
+// ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½ï¿½
+#define FILE_TYPE_BOOT           0  /* Boot abandoned */
+#define FILE_TYPE_VOS            1  /* OS; legacy 0xB0 transit */
 #define FILE_TYPE_APPLICATION    2
 #define FILE_TYPE_PARAM          3
 #define FILE_TYPE_DATA           4
 #define FILE_TYPE_FONT           5
+#define FILE_TYPE_SC_APP         6
+#define FILE_TYPE_WIFI           7
+#define FILE_TYPE_LOGO           8
 
-// ´ò°üÈÎÎñÀàÐÍ
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
 #define BALE_TASK_APPLICATION    0x01
 #define BALE_TASK_PARAM          0x02
 #define BALE_TASK_DATAM          0x03
@@ -40,9 +43,9 @@
 
 
 #define DOWNLOAD_STEP_LEN     4096
-#define DOWNLOAD_LEN_FIRM     3064
+#define DOWNLOAD_LEN_FIRM     4096
 
-// ÃüÁîÂë
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 #define CMD_CHANGE_BAUD_REQUEST         0xb000
 #define CMD_CHANGE_BAUD_RESPONSE        0xb001
 
@@ -50,6 +53,26 @@
 #define CMD_AUTHEN1_RESPONSE            0xb101
 #define CMD_AUTHEN2_REQUEST             0xb102
 #define CMD_AUTHEN2_RESPONSE            0xb103
+
+
+/* Unified file download session (DownloadProtocol_v1) for non-OS */
+#define CMD_FILE_DL_START_REQ           0xb210
+#define CMD_FILE_DL_START_RSP           0xb211
+#define CMD_FILE_DL_DATA_REQ            0xb212
+#define CMD_FILE_DL_DATA_RSP            0xb213
+#define CMD_FILE_DL_END_REQ             0xb214
+#define CMD_FILE_DL_END_RSP             0xb215
+#define CMD_FILE_DL_ABORT_REQ           0xb216
+#define CMD_FILE_DL_ABORT_RSP           0xb217
+
+#define FILE_DL_PROTO_VER               1
+#define FILE_DL_CHUNK_MAX               4096
+#define FILE_DL_NAME_MAX                32
+#define FACTORY_MAX_SLOTS               12
+#define OS_REBOOT_WAIT_MS               20000
+
+#define DL_MODE_DEVELOPER               0
+#define DL_MODE_FACTORY                 1
 
 #define CMD_LOAD_FILE_REQUEST           0xb200
 #define CMD_LOAD_FILE_RESPONSE          0xb201
@@ -80,6 +103,7 @@
 #define CMD_DELETE_FILE_RESPONSE        0xb313
 
 #define CMD_FINSH_ALL                   0xb400
+#define CMD_FINISH_ALL                  CMD_FINSH_ALL  /* D11 */
 
 
 
@@ -105,7 +129,7 @@ struct APPLICATION_INFO
 
 struct APPLICATION_LIST
 {
-    BYTE m_byValidityFlag;   // 1£ºÓÐÐ§£¬0£ºÎÞÐ§
+    BYTE m_byValidityFlag;   // 1ï¿½ï¿½ï¿½ï¿½Ð§ï¿½ï¿½0ï¿½ï¿½ï¿½ï¿½Ð§
     BYTE m_byAppStatus;
     BYTE m_byAppNum;
     BYTE m_abyAppFileSize[4];
@@ -116,7 +140,7 @@ struct APPLICATION_LIST
 
 #define COMM_RETRY_TIMES  3
 
-// ´íÎóÏûÏ¢±àºÅ
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿?
 
 #define MSG_CREATE_THREAD_FAILED          0
 #define MSG_OPEN_SERIAL_PORT_FAILED       1
@@ -131,18 +155,18 @@ struct APPLICATION_LIST
 #define MSG_AUTHENTICATION_ERROR         10
 #define MSG_OPEN_USB_PORT_FAILED         11
 
-#define MSG_CHN_CREATE_THREAD_FAILED         "´´½¨Ïß³ÌÊ§°Ü"
-#define MSG_CHN_OPEN_SERIAL_PORT_FAILED      "´ò¿ª´®¿ÚÊ§°Ü"
-#define MSG_CHN_CONNECTING                   "ÕýÔÚÁ¬½Ó..."
-#define MSG_CHN_USER_STOP_DOWNLOAD           "ÓÃ»§ÖÕÖ¹ÏÂÔØ!"
-#define MSG_CHN_HANDSHACK_FAILED             "ÎÕÊÖÊ§°Ü"
-#define MSG_CHN_CHANGE_BAUD_FAILED           "ÐÞ¸Ä²¨ÌØÂÊÊ§°Ü"
-#define MSG_CHN_SEND_FAILED                  "·¢ËÍ´íÎó"
-#define MSG_CHN_RECEIVE_FAILED               "½ÓÊÕ´íÎó"
-#define MSG_CHN_CHANGE_BAUD                  "ÐÞ¸Ä²¨ÌØÂÊ"
-#define MSG_CHN_AUTHENTICATION               "ÈÏÖ¤..."
-#define MSG_CHN_AUTHENTICATION_ERROR         "ÈÏÖ¤Ê§°Ü."
-#define MSG_CHN_OPEN_USB_PORT_FAILED         "´ò¿ªUSB¿ÚÊ§°Ü"
+#define MSG_CHN_CREATE_THREAD_FAILED         "ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½Ê§ï¿½ï¿½"
+#define MSG_CHN_OPEN_SERIAL_PORT_FAILED      "ï¿½ò¿ª´ï¿½ï¿½ï¿½Ê§ï¿½ï¿½"
+#define MSG_CHN_CONNECTING                   "ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½..."
+#define MSG_CHN_USER_STOP_DOWNLOAD           "ï¿½Ã»ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½ï¿½ï¿½!"
+#define MSG_CHN_HANDSHACK_FAILED             "ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½"
+#define MSG_CHN_CHANGE_BAUD_FAILED           "ï¿½Þ¸Ä²ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½"
+#define MSG_CHN_SEND_FAILED                  "ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½"
+#define MSG_CHN_RECEIVE_FAILED               "ï¿½ï¿½ï¿½Õ´ï¿½ï¿½ï¿½"
+#define MSG_CHN_CHANGE_BAUD                  "ï¿½Þ¸Ä²ï¿½ï¿½ï¿½ï¿½ï¿½"
+#define MSG_CHN_AUTHENTICATION               "ï¿½ï¿½Ö¤..."
+#define MSG_CHN_AUTHENTICATION_ERROR         "ï¿½ï¿½Ö¤Ê§ï¿½ï¿½."
+#define MSG_CHN_OPEN_USB_PORT_FAILED         "ï¿½ï¿½USBï¿½ï¿½Ê§ï¿½ï¿½"
 
 
 #define MSG_ENG_CREATE_THREAD_FAILED         "Create thread failed."

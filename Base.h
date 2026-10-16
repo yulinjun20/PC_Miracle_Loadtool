@@ -26,8 +26,8 @@
 
 struct CONFIG_INFO
 {
-    int m_iSerialPortNumber;           // 串口号选择，取值0到7
-    int m_iSerialPortBaudsSelect;      // 串口波特率编号选择，取值0到7
+    int m_iSerialPortNumber;           // combo index 0..98 -> COM1..COM99
+    int m_iSerialPortBaudsSelect;      // baud index 0..9
 
     char m_strBootFilePath[256];       // boot文件存放路径
     char m_strVOSFilePath[256];        // VOS文件存放路径
@@ -64,7 +64,14 @@ struct CONFIG_INFO
     BYTE m_byPosType;                  // 机型选择
     BYTE m_abyVerFlag[2];
 
-    BYTE m_abyRev[243];                // 保留字段
+    char m_strScAppFilePath[256];     // SC App firmware path (placeholder)
+    char m_strWifiFilePath[256];      // WIFI firmware path (placeholder)
+    char m_strLogoFilePath[256];      // Logo file path (placeholder)
+    BYTE m_byScAppSelect;             // SC App download select
+    BYTE m_byWifiSelect;              // WIFI download select
+    BYTE m_byLogoSelect;              // Logo download select
+
+    BYTE m_abyRev[240];                // 保留字段
 };
 
 

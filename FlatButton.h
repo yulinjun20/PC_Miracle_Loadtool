@@ -117,7 +117,7 @@ private:
 
 #ifdef ST_USE_MEMDC
 //////////////////////////////////////////////////
-// CMemDC - memory DC
+// CFlatMemDC - memory DC (renamed: avoid MFC CMemDC LNK2005)
 //
 // Author: Keith Rule
 // Email:  keithr@europa.com
@@ -132,12 +132,12 @@ private:
 //
 // This class implements a memory Device Context
 
-class CMemDC : public CDC
+class CFlatMemDC : public CDC
 {
 public:
 
     // constructor sets up the memory DC
-    CMemDC(CDC* pDC) : CDC()
+    CFlatMemDC(CDC* pDC) : CDC()
     {
         ASSERT(pDC != NULL);
 
@@ -162,7 +162,7 @@ public:
     }
     
     // Destructor copies the contents of the mem DC to the original DC
-    ~CMemDC()
+    ~CFlatMemDC()
     {
         if (m_bMemDC) 
         {    
@@ -181,14 +181,14 @@ public:
     }
 
     // Allow usage as a pointer
-    CMemDC* operator->() {return this;}
+    CFlatMemDC* operator->() {return this;}
         
     // Allow usage as a pointer
-    operator CMemDC*() {return this;}
+    operator CFlatMemDC*() {return this;}
 
 private:
     CBitmap  m_bitmap;      // Offscreen bitmap
-    CBitmap* m_pOldBitmap;  // bitmap originally found in CMemDC
+    CBitmap* m_pOldBitmap;  // bitmap originally found in CFlatMemDC
     CDC*     m_pDC;         // Saves CDC passed in constructor
     CRect    m_rect;        // Rectangle of drawing area.
     BOOL     m_bMemDC;      // TRUE if CDC really is a Memory DC.

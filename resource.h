@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Developer Studio generated include file.
 // Used by LoadTools.rc
 //
@@ -42,7 +42,7 @@
 #define IDC_CHECK_APP_SELECT            1013
 #define IDC_EDIT_FONT_FILE_PATH         1014
 #define IDC_BUTTON_OPEN_APP_FILE        1015
-#define IDC_COMBO_APP_FILE_PATH         1016
+#define IDC_EDIT_APP_FILE_PATH          1016
 #define IDC_CHECK_FONT_FILE             1017
 #define IDC_BUTTON_OPEN_FONT_FILE       1018
 #define IDC_TREE_FILE_LIST              1019
@@ -146,6 +146,21 @@
 #define IDC_BUTTON_SAVE_INFO            1116
 #define IDB_MIRACLE_LOGO                171
 #define IDC_STATIC_MIRACLE_LOGO         1117
+#define IDC_CHECK_SC_APP_FILE           1118
+#define IDC_EDIT_SC_APP_FILE_PATH       1119
+#define IDC_BUTTON_OPEN_SC_APP_FILE     1120
+#define IDC_CHECK_WIFI_FILE             1121
+#define IDC_EDIT_WIFI_FILE_PATH         1122
+#define IDC_BUTTON_OPEN_WIFI_FILE       1123
+#define IDC_CHECK_LOGO_FILE             1124
+#define IDC_EDIT_LOGO_FILE_PATH         1125
+#define IDC_BUTTON_OPEN_LOGO_FILE       1126
+#define IDC_RADIO_MODE_DEVELOPER        1127
+#define IDC_RADIO_MODE_FACTORY          1128
+#define IDC_LIST_FACTORY_STATUS         1129
+#define IDC_STATIC_MODE_LABEL           1130
+#define IDC_STATIC_FACTORY_ACTIVE       1131
+
 
 // Next default values for new objects
 // 
@@ -153,7 +168,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1118
+#define _APS_NEXT_CONTROL_VALUE         1127
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

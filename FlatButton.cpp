@@ -262,7 +262,7 @@ void CFlatButton::DrawItem(LPDRAWITEMSTRUCT lpDIS)
 {
 #ifdef ST_USE_MEMDC
     CDC  *pdrawDC = CDC::FromHandle(lpDIS->hDC);
-    CMemDC memDC(pdrawDC);
+    CFlatMemDC memDC(pdrawDC);
     CDC  *pDC = &memDC;
 #else    
     CDC* pDC = CDC::FromHandle(lpDIS->hDC);

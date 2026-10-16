@@ -45,6 +45,17 @@
 
 
 extern HANDLE GetSerialHandle(void);
+
+/* Multi-handle / factory support (thread-local active port) */
+extern BYTE SerOpenPort(int iPortNo, DWORD BaudRate, HANDLE *phOut);
+extern void SerClosePort(HANDLE hPort);
+extern void SerBind(HANDLE hPort);      /* bind TLS active handle; SerClose will not CloseHandle */
+extern void SerUnbind(void);
+extern BOOL SerIsBound(void);
+extern HANDLE SerGetActive(void);
+extern BYTE SerWriteH(HANDLE hPort, BYTE *pszBuf, WORD SendCnt);
+extern BYTE SerReadH(HANDLE hPort, BYTE *pszBuf, WORD RecvCnt, DWORD TimeOut);
+
 //extern int GetCurPortNo();
 extern BYTE SerOpen(int iPortNo, DWORD BaudRate);
 extern void SerClose(void);
@@ -102,6 +113,8 @@ DWORD ReadUsbDevice(BYTE * lpByte, DWORD dwLength, DWORD timeout);
 
 BYTE LocalWrite(BYTE *pbySendData, WORD wDataLen);
 BYTE LocalRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs);
+
+void QuickCrc32(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[4]);
 
 
 #endif

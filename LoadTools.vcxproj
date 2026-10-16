@@ -113,9 +113,9 @@
     <ClCompile Include="LoadToolsDlg.cpp" />
     <ClCompile Include="PageApplication.cpp" />
     <ClCompile Include="PageCommSet.cpp" />
+    <ClCompile Include="EnvJson.cpp" />
     <ClCompile Include="PageEditParam.cpp" />
     <ClCompile Include="PageFileBale.cpp" />
-    <ClCompile Include="PageFirmware.cpp" />
     <ClCompile Include="ShowAppInfo.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -135,9 +135,9 @@
     <ClInclude Include="LoadToolsDlg.h" />
     <ClInclude Include="PageApplication.h" />
     <ClInclude Include="PageCommSet.h" />
+    <ClInclude Include="EnvJson.h" />
     <ClInclude Include="PageEditParam.h" />
     <ClInclude Include="PageFileBale.h" />
-    <ClInclude Include="PageFirmware.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="ShowAppInfo.h" />
     <ClInclude Include="StdAfx.h" />
@@ -160,6 +160,7 @@
     <Image Include="res\ico_open1.ico" />
     <Image Include="res\icon1.ico" />
     <Image Include="res\LoadTools.ico" />
+    <Image Include="res\miracle_logo.bmp" />
     <Image Include="res\Run.ico" />
     <Image Include="res\Search1.ico" />
     <Image Include="res\UP32x32x256.ico" />

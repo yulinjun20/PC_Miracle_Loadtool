@@ -81,7 +81,23 @@ BOOL CPageCommSet::OnInitDialog()
     }
 
     // TODO: Add extra initialization here
-    
+
+    /* Port list: COM1..COM99 (index 0..98 -> SerOpen(index+1)). Replace RC DLGINIT. */
+    {
+        CComboBox *pPort = (CComboBox *)GetDlgItem(IDC_COMBO_COM_PORT_NUMBER);
+        if (pPort != NULL)
+        {
+            int i;
+            char szPort[16];
+            pPort->ResetContent();
+            for (i = 1; i <= 99; ++i)
+            {
+                sprintf(szPort, "COM%d", i);
+                pPort->AddString(szPort);
+            }
+        }
+    }
+
     if (0 == g_sConfigreInfo.m_byCommType)
     {
         ((CButton *)GetDlgItem(IDC_RADIO_USE_COM))->SetCheck(TRUE);
@@ -96,7 +112,17 @@ BOOL CPageCommSet::OnInitDialog()
     GetDlgItem(IDC_RADIO_USE_USB)->EnableWindow(FALSE);
 
     m_iSerialPortNumber = g_sConfigreInfo.m_iSerialPortNumber;
+    if (m_iSerialPortNumber < 0 || m_iSerialPortNumber > 98)
+    {
+        m_iSerialPortNumber = 0;
+        g_sConfigreInfo.m_iSerialPortNumber = 0;
+    }
     m_iSerialPortBauds = g_sConfigreInfo.m_iSerialPortBaudsSelect;
+    if (m_iSerialPortBauds < 0 || m_iSerialPortBauds > 9)
+    {
+        m_iSerialPortBauds = 0;
+        g_sConfigreInfo.m_iSerialPortBaudsSelect = 0;
+    }
 
     UpdateData(FALSE);
     

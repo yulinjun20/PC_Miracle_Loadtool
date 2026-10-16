@@ -71,50 +71,37 @@ static void ClearPathIfMissing(char *pszPath, int iSize)
 
 static void PruneMissingConfigPaths(void)
 {
-    int i;
-    int j;
-    BYTE byNewCount;
-    BYTE byNewSelect;
-    char astrKeep[MAX_APP_PATH_NUMBER][256];
+    char szKeep[256];
+    BYTE bySelect;
 
-    byNewCount = 0;
-    byNewSelect = 0;
-    memset(astrKeep, 0, sizeof(astrKeep));
-
+    /* Keep only the current App path (single last path; drop history). */
+    memset(szKeep, 0, sizeof(szKeep));
     if (g_sConfigreInfo.m_byAppFilePathNumber > MAX_APP_PATH_NUMBER)
     {
         g_sConfigreInfo.m_byAppFilePathNumber = 0;
     }
-
-    for (i = 0; i < (int)g_sConfigreInfo.m_byAppFilePathNumber; i++)
+    bySelect = g_sConfigreInfo.m_byAppPathCurrentSelect;
+    if (0 != g_sConfigreInfo.m_byAppFilePathNumber
+        && bySelect < g_sConfigreInfo.m_byAppFilePathNumber
+        && 0 != g_sConfigreInfo.m_strAppFilePath[bySelect][0])
     {
-        FILE *fpCheck;
-
-        if (0 == g_sConfigreInfo.m_strAppFilePath[i][0])
-        {
-            continue;
-        }
-        fpCheck = fopen(&g_sConfigreInfo.m_strAppFilePath[i][0], "rb");
-        if (NULL == fpCheck)
-        {
-            continue;
-        }
-        fclose(fpCheck);
-        if (i == (int)g_sConfigreInfo.m_byAppPathCurrentSelect)
-        {
-            byNewSelect = byNewCount;
-        }
-        memcpy(astrKeep[byNewCount], g_sConfigreInfo.m_strAppFilePath[i], 256);
-        byNewCount++;
+        memcpy(szKeep, g_sConfigreInfo.m_strAppFilePath[bySelect], 256);
     }
-
     memset(g_sConfigreInfo.m_strAppFilePath, 0, sizeof(g_sConfigreInfo.m_strAppFilePath));
-    for (j = 0; j < (int)byNewCount; j++)
+    if (0 != szKeep[0])
     {
-        memcpy(g_sConfigreInfo.m_strAppFilePath[j], astrKeep[j], 256);
+        memcpy(g_sConfigreInfo.m_strAppFilePath[0], szKeep, 256);
+        ClearPathIfMissing(g_sConfigreInfo.m_strAppFilePath[0], 256);
     }
-    g_sConfigreInfo.m_byAppFilePathNumber = byNewCount;
-    g_sConfigreInfo.m_byAppPathCurrentSelect = (byNewCount > 0) ? byNewSelect : 0;
+    if (0 != g_sConfigreInfo.m_strAppFilePath[0][0])
+    {
+        g_sConfigreInfo.m_byAppFilePathNumber = 1;
+    }
+    else
+    {
+        g_sConfigreInfo.m_byAppFilePathNumber = 0;
+    }
+    g_sConfigreInfo.m_byAppPathCurrentSelect = 0;
 
     ClearPathIfMissing(g_sConfigreInfo.m_strBootFilePath, sizeof(g_sConfigreInfo.m_strBootFilePath));
     ClearPathIfMissing(g_sConfigreInfo.m_strVOSFilePath, sizeof(g_sConfigreInfo.m_strVOSFilePath));
@@ -123,6 +110,12 @@ static void PruneMissingConfigPaths(void)
     ClearPathIfMissing(g_sConfigreInfo.m_strParamFilePath, sizeof(g_sConfigreInfo.m_strParamFilePath));
     ClearPathIfMissing(g_sConfigreInfo.m_strDataFilePath, sizeof(g_sConfigreInfo.m_strDataFilePath));
     ClearPathIfMissing(g_sConfigreInfo.m_strParamEditFilepath, sizeof(g_sConfigreInfo.m_strParamEditFilepath));
+    ClearPathIfMissing(g_sConfigreInfo.m_strScAppFilePath, sizeof(g_sConfigreInfo.m_strScAppFilePath));
+    ClearPathIfMissing(g_sConfigreInfo.m_strWifiFilePath, sizeof(g_sConfigreInfo.m_strWifiFilePath));
+    ClearPathIfMissing(g_sConfigreInfo.m_strLogoFilePath, sizeof(g_sConfigreInfo.m_strLogoFilePath));
+    if (g_sConfigreInfo.m_byScAppSelect > 1) g_sConfigreInfo.m_byScAppSelect = 0;
+    if (g_sConfigreInfo.m_byWifiSelect > 1) g_sConfigreInfo.m_byWifiSelect = 0;
+    if (g_sConfigreInfo.m_byLogoSelect > 1) g_sConfigreInfo.m_byLogoSelect = 0;
 }
 
 // ret=-1:error ret=0:success
@@ -161,6 +154,7 @@ int GetConfigureInfo(void)
     else
     {
         fseek(fp, 0, SEEK_SET);
+        memset(&g_sConfigreInfo, 0, sizeof(CONFIG_INFO));
         fread(&g_sConfigreInfo, sizeof(char), len, fp);
         if (0 != memcmp(g_sConfigreInfo.m_abyVerFlag, "\x00\x01", 2))
         {

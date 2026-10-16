@@ -8,23 +8,25 @@
 //
 
 #include "FlatButton.h"
+#include "EnvJson.h"
 
 #define INFO_CHANGE_HINT		"Save it?"
 #define INFO_OPERATE_HINT		"Clue on"
 
 #define SCROLL_STEP_LEN          10
-#define PARAM_NAME_MAX_LEN        7
-#define PARAM_CONTENT_MAX_LEN   119
+/* JSON env limits (see EnvJson.h / Docs/EnvFormat.md) */
+#define PARAM_NAME_MAX_LEN      ENV_JSON_NAME_MAX
+#define PARAM_CONTENT_MAX_LEN   ENV_JSON_VALUE_MAX
 
-#define PARAM_NAME_LEN        8
-#define PARAM_CONTENT_LEN   120
-#define MAX_PARAM_NUMBER    600
-#define PARAM_ITEM_LEN    (PARAM_NAME_LEN+PARAM_CONTENT_LEN)
+#define PARAM_NAME_LEN        (ENV_JSON_NAME_MAX + 1)
+#define PARAM_CONTENT_LEN     (ENV_JSON_VALUE_MAX + 1)
+#define MAX_PARAM_NUMBER      ENV_JSON_MAX_ITEMS
+#define PARAM_ITEM_LEN        (PARAM_NAME_LEN + PARAM_CONTENT_LEN)
+/* Temp buffer for UI get/set must fit the longer of name/value */
+#define PARAM_TEMP_BUF_LEN    PARAM_CONTENT_LEN
 
-typedef struct {
-    char strName[PARAM_NAME_LEN];
-    char strContent[PARAM_CONTENT_LEN];
-} PARAM_STRUCT;
+typedef ENV_PARAM_ITEM PARAM_STRUCT;
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageEditParam dialog
@@ -38,7 +40,7 @@ public:
     CPageEditParam();
     ~CPageEditParam();
     
-    // ÊÇ·ñÓÐÏß³ÌÔÚÔËÐÐ
+    // ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     BOOL IsThreadRun();
 
     void ReadParamFile();
@@ -51,12 +53,12 @@ public:
 
     void InterfaceValidCheck();
 
-    int m_iStartLine;           // µ±Ç°½çÃæÏÔÊ¾µÄ³õÊ¼ÐÐ£¬È¡Öµ´Ó0¿ªÊ¼
-    int m_iParamLineNumber;     // »º³åÇøÄÚ²ÎÊýµÄ×ÜÐÐÊý
-    BOOL m_bEditChangeFlag;     // ÐÞ¸Ä±êÖ¾£¬FALSEÎ´ÐÞ¸Ä£¬TRUEÒÑÐÞ¸Ä
+    int m_iStartLine;           // ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½Ä³ï¿½Ê¼ï¿½Ð£ï¿½È¡Öµï¿½ï¿½0ï¿½ï¿½Ê¼
+    int m_iParamLineNumber;     // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+    BOOL m_bEditChangeFlag;     // ï¿½Þ¸Ä±ï¿½Ö¾ï¿½ï¿½FALSEÎ´ï¿½Þ¸Ä£ï¿½TRUEï¿½ï¿½ï¿½Þ¸ï¿½
 
-    PARAM_STRUCT m_sParamStruct[MAX_PARAM_NUMBER];  // ´æ·ÅÒ³ÃæÐÅÏ¢
-    DWORD m_dwTimer;   // ¶¨Ê±Æ÷±àºÅ
+    PARAM_STRUCT m_sParamStruct[MAX_PARAM_NUMBER];  // ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½Ï¢
+    DWORD m_dwTimer;   // ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½
 
 
 // Dialog Data

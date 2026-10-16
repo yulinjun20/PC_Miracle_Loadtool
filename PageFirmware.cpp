@@ -23,12 +23,14 @@ extern CONFIG_INFO g_sConfigreInfo;
 
 extern void UpdateConfigure(void);
 
-extern HANDLE g_lHandle;  // Ïß³Ì¾ä±ú
+extern HANDLE g_lHandle;  // ï¿½ß³Ì¾ï¿½ï¿?
 
 extern int g_iCommCheckType;
 
-// Ö¸ÏòÏÂÔØ¹¤¾ßLoadToolsÖ÷½çÃæµÄÖ¸Õë£¬Ö»Òª³ÌÐòÔËÐÐ£¬¸ÃÖ¸Õë¾ÍÖ¸ÏòLoadToolsÖ÷½çÃæ
+// Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½LoadToolsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£¬Ö»Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½LoadToolsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 extern CLoadToolsDlg *g_pCLoadToolsDlg;
+
+extern DWORD g_adwBauds[10];
 
 /////////////////////////////////////////////////////////////////////////////
 // CPageFirmware property page
@@ -38,9 +40,7 @@ IMPLEMENT_DYNCREATE(CPageFirmware, CPropertyPage)
 CPageFirmware::CPageFirmware() : CPropertyPage(CPageFirmware::IDD)
 {
     //{{AFX_DATA_INIT(CPageFirmware)
-    m_strBootFilePath = _T("");
     m_strVosFilePath = _T("");
-    m_bBootSelect = FALSE;
     m_bVOSSelect = FALSE;
     //}}AFX_DATA_INIT
 }
@@ -53,14 +53,11 @@ void CPageFirmware::DoDataExchange(CDataExchange* pDX)
 {
     CPropertyPage::DoDataExchange(pDX);
     //{{AFX_DATA_MAP(CPageFirmware)
-    DDX_Text(pDX, IDC_EDIT_BOOT_FILE_PATH, m_strBootFilePath);
     DDX_Text(pDX, IDC_EDIT_VOS_FILE_PATH, m_strVosFilePath);
-    DDX_Check(pDX, IDC_CHECK_BOOT_SELECT, m_bBootSelect);
     DDX_Check(pDX, IDC_CHECK_VOS_SELECT, m_bVOSSelect);
     
     DDX_Control(pDX, IDC_BUTTON_DOWNLOAD_FIRMWARE, m_btnDownload);
     DDX_Control(pDX, IDC_BUTTON_STOP_FIRMWARE, m_btnStop);
-    DDX_Control(pDX, IDC_BUTTON_OPEN_BOOT_FILE, m_btnOpenBootFile);
     DDX_Control(pDX, IDC_BUTTON_OPEN_VOS_FILE, m_btnOpenVosFile);
     //}}AFX_DATA_MAP
 }
@@ -68,13 +65,10 @@ void CPageFirmware::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CPageFirmware, CPropertyPage)
     //{{AFX_MSG_MAP(CPageFirmware)
-    ON_BN_CLICKED(IDC_BUTTON_OPEN_BOOT_FILE, OnButtonOpenBootFile)
     ON_BN_CLICKED(IDC_BUTTON_OPEN_VOS_FILE, OnButtonOpenVosFile)
     ON_BN_CLICKED(IDC_BUTTON_DOWNLOAD_FIRMWARE, OnButtonDownloadFirmware)
     ON_BN_CLICKED(IDC_BUTTON_STOP_FIRMWARE, OnButtonStopFirmware)
-    ON_BN_CLICKED(IDC_CHECK_BOOT_SELECT, OnCheckBootSelect)
     ON_BN_CLICKED(IDC_CHECK_VOS_SELECT, OnCheckVosSelect)
-    ON_EN_CHANGE(IDC_EDIT_BOOT_FILE_PATH, OnChangeEditBootFilePath)
     ON_EN_CHANGE(IDC_EDIT_VOS_FILE_PATH, OnChangeEditVosFilePath)
     //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -105,9 +99,7 @@ BOOL CPageFirmware::OnInitDialog()
     }
 
     // TODO: Add extra initialization here
-    m_bBootSelect = g_sConfigreInfo.m_byBootSelect;
     m_bVOSSelect = g_sConfigreInfo.m_byVOSSelect;
-    m_strBootFilePath.Format(g_sConfigreInfo.m_strBootFilePath);
     m_strVosFilePath.Format(g_sConfigreInfo.m_strVOSFilePath);
     
     GetDlgItem(IDC_BUTTON_STOP_FIRMWARE)->EnableWindow(FALSE);
@@ -121,10 +113,6 @@ BOOL CPageFirmware::OnInitDialog()
     m_btnStop.SetIcon(IDI_ICON_STOP, NULL, 50, 32);
     m_btnStop.SetShowText(TRUE);
     m_btnStop.SetActiveBgColor(RGB(200,200,200), FALSE);
-
-    m_btnOpenBootFile.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
-    m_btnOpenBootFile.SetShowText(TRUE);
-    m_btnOpenBootFile.SetActiveBgColor(RGB(200,200,200), FALSE);
 
     m_btnOpenVosFile.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
     m_btnOpenVosFile.SetShowText(TRUE);
@@ -144,26 +132,10 @@ BOOL CPageFirmware::OnKillActive()
 
     if( IsThreadRun() )
     {
-        return FALSE;  // ÓÐÏß³ÌÔÚÅÜÊ±£¬±¾½çÃæ²»ÏìÓ¦ÓÃ»§µã»÷ÊÂ¼þ
+        return FALSE;  // ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ²»ï¿½ï¿½Ó¦ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½Â¼ï¿?
     }
 
     return CPropertyPage::OnKillActive();
-}
-
-void CPageFirmware::OnButtonOpenBootFile() 
-{
-    // TODO: Add your control notification handler code here
-    static char BASED_CODE szMergeFilter[] = _T("Open File (*.bin)|*.bin||)");
-    CString filter;
-    filter = szMergeFilter;
-
-    CFileDialog dlg(TRUE, NULL, m_strBootFilePath,
-        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, 0);
-    if (dlg.DoModal() == IDOK)
-    {
-        m_strBootFilePath = dlg.GetPathName();
-        UpdateData(FALSE);
-    }
 }
 
 void CPageFirmware::OnButtonOpenVosFile() 
@@ -211,9 +183,9 @@ void CPageFirmware::OnButtonDownloadFirmware()
     // TODO: Add your control notification handler code here
     DWORD ThreadId;
 
-    UpdateConfigure();  // ½«½çÃæÉÏµÄÅäÖÃ±£´æÔÚÅäÖÃ»º³åÖÐ
-    SaveConfigInfo();   // ½«ÅäÖÃ»º³åÖÐµÄÅäÖÃ±£´æµ½ÅäÖÃÎÄ¼þÖÐ
-    if ((FALSE==m_bBootSelect) && (FALSE==m_bVOSSelect))
+    UpdateConfigure();  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½
+    SaveConfigInfo();   // ï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½Ðµï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½æµ½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ï¿½
+    if (FALSE==m_bVOSSelect)
     {
         MyShowMessage("No select any download file!");
         return ;
@@ -237,28 +209,10 @@ void CPageFirmware::OnButtonStopFirmware()
     MyEnableWindows(TRUE);
 }
 
-void CPageFirmware::OnCheckBootSelect() 
-{
-    // TODO: Add your control notification handler code here
-    UpdateData(TRUE);
-}
-
 void CPageFirmware::OnCheckVosSelect() 
 {
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
-}
-
-void CPageFirmware::OnChangeEditBootFilePath() 
-{
-    // TODO: If this is a RICHEDIT control, the control will not
-    // send this notification unless you override the CPropertyPage::OnInitDialog()
-    // function and call CRichEditCtrl().SetEventMask()
-    // with the ENM_CHANGE flag ORed into the mask.
-    
-    // TODO: Add your control notification handler code here
-    UpdateData(TRUE);
-    
 }
 
 void CPageFirmware::OnChangeEditVosFilePath() 
@@ -285,14 +239,14 @@ void CPageFirmware::MyEnableWindows(BOOL bFlag)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  int CPageApplication::Handshack()
-  ÃèÊö       :  ÎÕÊÖº¯Êý
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  0£º³É¹¦£¬1£ºÎÕÊÖÊ§°Ü£¬2£º´ò¿ª´®¿ÚÊ§°Ü
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-10-08   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int CPageApplication::Handshack()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Öºï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  0ï¿½ï¿½ï¿½É¹ï¿½ï¿½ï¿½1ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½2ï¿½ï¿½ï¿½ò¿ª´ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-10-08   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int CPageFirmware::Handshack()
 {
@@ -301,13 +255,15 @@ int CPageFirmware::Handshack()
 
     m_bStopDownloadFlag = FALSE;
 
-    if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1, 115200))
+    // Use UI-selected baud for the whole OS download; do not change baud mid-transfer.
+    if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1,
+        g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
     {
         G_MyShowMessage(MSG_OPEN_SERIAL_PORT_FAILED);
         return 2;
     }
 
-    // ÎÕÊÖ
+    // ï¿½ï¿½ï¿½ï¿½
     G_MyShowMessage(MSG_CONNECTING);
     i = 0;
     for (;;)
@@ -350,49 +306,38 @@ int CPageFirmware::DownloadStart()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ÎÄ¼þÏÂÔØ´¦Àíº¯Êý
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-10-08   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½Ä¼ï¿½ï¿½ï¿½ï¿½Ø´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-10-08   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int CPageFirmware::DownloadProcess()
 {
     int iRet;
 
     MyShowMessage("Handshack finish.");
-    if (m_bBootSelect || m_bVOSSelect)
+    if (m_bVOSSelect)
     {
-        if (m_bBootSelect)
-        {
-            iRet = DownloadFile(m_strBootFilePath.GetBuffer(0), FILE_TYPE_BOOT);
-            if (0 != iRet)
-            {
-                return iRet;
-            }
-        }
-        if (m_bVOSSelect)
-        {
-            MyShowMessage("Download VOS");
-            iRet = DownloadFile(m_strVosFilePath.GetBuffer(0), FILE_TYPE_VOS);
-            return iRet;
-        }
+        MyShowMessage("Download OS");
+        iRet = DownloadFile(m_strVosFilePath.GetBuffer(0), FILE_TYPE_VOS);
+        return iRet;
     }
     return 0;
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-10-08   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-10-08   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
 {
@@ -411,54 +356,23 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
     }
     fseek(fp, 0, SEEK_END);
     iFileLen = ftell(fp);
-//    MyShowMessage("ÏÂÔØÎÄ¼þ...");
+//    MyShowMessage("ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½...");
     switch (byFileType)
     {
-    case FILE_TYPE_BOOT:
-        byCmd = 0xc0;
-        if (iFileLen > (64*1024))
-        {
-            fclose(fp);
-            MessageBox("boot file size error(>64K bytes), please ensure the boot file is the right!");
-            return 2;
-        }
-        else if (iFileLen < 4096)
-        {
-            fclose(fp);
-            MessageBox("boot file size error(<4096 bytes)£¬please ensure the boot file is the right!");
-            return 3;
-        }
-        strcpy(str, "boot......");
-        break;
     case FILE_TYPE_VOS:
         byCmd = 0xb0;
-        if (iFileLen > (960*1024))
+        if (iFileLen > (2*1024*1024))
         {
             fclose(fp);
-            MessageBox("VOS file size error(>960K bytes), please ensure the VOS file is the right");
+            MessageBox("OS file size error(>2MB), please ensure the OS file is the right");
             return 4;
         }
         else if (iFileLen < (50*1024))
         {
             fclose(fp);
-            MessageBox("VOS file size error(<50K bytes)£¬please ensure the VOS file is the right!");
+            MessageBox("OS file size error(<50K bytes), please ensure the OS file is the right!");
             return 5;
         }
-        fseek(fp, -10, SEEK_END);
-        fread(abyTemp, 1, 10, fp);
-        if (0 != memcmp(abyTemp,"VPP202-VOS",10))
-        {
-            fseek(fp, -36, SEEK_END);
-            fread(abyTemp, 1, 6, fp);
-            if (   (0 != memcmp(abyTemp,"VOS306",6))
-                && (0 != memcmp(abyTemp,"VOS307",6)) )
-            {
-                fclose(fp);
-                MessageBox("VOS file's mark error, please ensure the VOS file is right!");
-                return 6;
-            }
-        }
-        strcpy(str, "Download VOS...");
         break;
     default:
         fclose(fp);
@@ -467,14 +381,14 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
     dwCurrentLen = 0;
     iErrorCount = 0;
     fseek(fp, 0, SEEK_SET);
-//    MyShowMessage("ÏÂÔØÎÄ¼þ2");
+//    MyShowMessage("ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½2");
     while (1)
     {
         if (dwCurrentLen >= (DWORD)iFileLen)
         {
             break;
         }
-        sprintf(&str[15], "%d%%", (dwCurrentLen*100)/iFileLen);
+        sprintf(str, "Download OS...%d%%", (int)((dwCurrentLen * 100) / iFileLen));
         MyShowMessage(str);
         wPacketLen = DOWNLOAD_LEN_FIRM;
         if ((dwCurrentLen+DOWNLOAD_LEN_FIRM) > (DWORD)iFileLen)
@@ -534,6 +448,20 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
         if (0 != iRet)
         {
             return 10;
+        }
+        /* Device B1 success = 1-byte [0]; abyTemp[5] would be CRC if payLen==1. */
+        {
+            WORD payLen = (wPacketLen >= 8) ? (WORD)(wPacketLen - 8) : 0;
+            if (1 == payLen)
+            {
+                if (0 == abyTemp[4])
+                {
+                    MyShowMessage("Download success.");
+                    return 0;
+                }
+                MyShowMessage("OS end: device rejected.");
+                return 11;
+            }
         }
         switch (abyTemp[4])
         {

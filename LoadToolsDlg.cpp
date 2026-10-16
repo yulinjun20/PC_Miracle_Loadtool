@@ -12,34 +12,30 @@
 static char THIS_FILE[] = __FILE__;
 #endif
 
-// Ö¸ÏòÏÂÔØ¹¤¾ßLoadToolsÖ÷½çÃæµÄÖ¸Õë£¬Ö»Òª³ÌÐòÔËÐÐ£¬¸ÃÖ¸Õë¾ÍÖ¸ÏòLoadToolsÖ÷½çÃæ
+// Ö¸ï¿½ï¿½ï¿½ï¿½ï¿½Ø¹ï¿½ï¿½ï¿½LoadToolsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ë£¬Ö»Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½LoadToolsï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 CLoadToolsDlg *g_pCLoadToolsDlg = NULL;
 
 extern void PortClose();
 
-// Ïß³ÌÔËÐÐ±êÖ¾£¬FALSE:Ã»ÓÐÈÎºÎÏß³ÌÎ´ÔËÐÐ£¬TRUE:ÓÐÏß³ÌÔËÐÐ
+// ï¿½ß³ï¿½ï¿½ï¿½ï¿½Ð±ï¿½Ö¾ï¿½ï¿½FALSE:Ã»ï¿½ï¿½ï¿½Îºï¿½ï¿½ß³ï¿½Î´ï¿½ï¿½ï¿½Ð£ï¿½TRUE:ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½ï¿½ï¿½
 BOOL g_bThreadRunFlag = FALSE;
 extern CONFIG_INFO g_sConfigreInfo;
 
 void UpdateConfigure(void)
 {
-    // Firmware ½çÃæÅäÖÃ±£´æ
-
-    strcpy(g_sConfigreInfo.m_strBootFilePath, 
-        g_pCLoadToolsDlg->m_PageFirmware.m_strBootFilePath.GetBuffer(0));
+    // Firmware ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½
+    g_sConfigreInfo.m_strBootFilePath[0] = 0;
 
     strcpy(g_sConfigreInfo.m_strVOSFilePath, 
-        g_pCLoadToolsDlg->m_PageFirmware.m_strVosFilePath.GetBuffer(0));
+        g_pCLoadToolsDlg->m_PageApplication.m_strVosFilePath.GetBuffer(0));
 
     g_sConfigreInfo.m_byVOSSelect 
-        = g_pCLoadToolsDlg->m_PageFirmware.m_bVOSSelect;
-
-    g_sConfigreInfo.m_byBootSelect 
-        = g_pCLoadToolsDlg->m_PageFirmware.m_bBootSelect;
+        = g_pCLoadToolsDlg->m_PageApplication.m_bVOSSelect;
+    g_sConfigreInfo.m_byBootSelect = 0;
 
 
 
-    // CommSet½çÃæÅäÖÃ±£´æ
+    // CommSetï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½
 
 //    g_sConfigreInfo.m_byCommType = 0;
     
@@ -51,7 +47,7 @@ void UpdateConfigure(void)
 
 
 
-    // Application½çÃæÅäÖÃ±£´æ
+    // Applicationï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½
 
     g_sConfigreInfo.m_byApplicationSelect
         = g_pCLoadToolsDlg->m_PageApplication.m_bAppSelect;
@@ -65,11 +61,9 @@ void UpdateConfigure(void)
     g_sConfigreInfo.m_byParamSelect
         = g_pCLoadToolsDlg->m_PageApplication.m_bParamFileSelect;
 
-    g_sConfigreInfo.m_byCreateFileSystemSelect
-        = g_pCLoadToolsDlg->m_PageApplication.m_bCreateFileSystemSelect;
+    g_sConfigreInfo.m_byCreateFileSystemSelect = 0;  // feature removed
 
-    g_sConfigreInfo.m_byChangeSNSelect
-        = g_pCLoadToolsDlg->m_PageApplication.m_bDownloadSNSelect;
+    g_sConfigreInfo.m_byChangeSNSelect = 0;  // SN feature removed
 
     g_sConfigreInfo.m_bySetTimeSelect
         = g_pCLoadToolsDlg->m_PageApplication.m_bSetTimeSelect;
@@ -77,8 +71,30 @@ void UpdateConfigure(void)
     g_sConfigreInfo.m_byDataFileSelect
         = g_pCLoadToolsDlg->m_PageApplication.m_bDataFileSelect;
 
+    g_sConfigreInfo.m_byScAppSelect
+        = g_pCLoadToolsDlg->m_PageApplication.m_bScAppSelect;
+    g_sConfigreInfo.m_byWifiSelect
+        = g_pCLoadToolsDlg->m_PageApplication.m_bWifiSelect;
+    g_sConfigreInfo.m_byLogoSelect
+        = g_pCLoadToolsDlg->m_PageApplication.m_bLogoSelect;
+
     strcpy(g_sConfigreInfo.m_strBaleFilePath,
         g_pCLoadToolsDlg->m_PageApplication.m_strBaleFilePath.GetBuffer(0));
+
+    /* App: single last path in slot 0 (history list removed). */
+    memset(g_sConfigreInfo.m_strAppFilePath, 0, sizeof(g_sConfigreInfo.m_strAppFilePath));
+    if (!g_pCLoadToolsDlg->m_PageApplication.m_strAppFilePath.IsEmpty())
+    {
+        strncpy(&g_sConfigreInfo.m_strAppFilePath[0][0],
+            g_pCLoadToolsDlg->m_PageApplication.m_strAppFilePath.GetBuffer(0), 255);
+        g_sConfigreInfo.m_strAppFilePath[0][255] = 0;
+        g_sConfigreInfo.m_byAppFilePathNumber = 1;
+    }
+    else
+    {
+        g_sConfigreInfo.m_byAppFilePathNumber = 0;
+    }
+    g_sConfigreInfo.m_byAppPathCurrentSelect = 0;
 
     strcpy(g_sConfigreInfo.m_strFontFilePath,
         g_pCLoadToolsDlg->m_PageApplication.m_strFontFilePath.GetBuffer(0));
@@ -86,26 +102,32 @@ void UpdateConfigure(void)
     strcpy(g_sConfigreInfo.m_strParamFilePath,
         g_pCLoadToolsDlg->m_PageApplication.m_strParamFilePath.GetBuffer(0));
 
-    strcpy(g_sConfigreInfo.m_strSerialNumber,
-        g_pCLoadToolsDlg->m_PageApplication.m_strVposSN.GetBuffer(0));
+    g_sConfigreInfo.m_strSerialNumber[0] = 0;  // SN feature removed
     
     strcpy(g_sConfigreInfo.m_strDataFilePath,
         g_pCLoadToolsDlg->m_PageApplication.m_strDataFilePath.GetBuffer(0));
 
-    // Bale½çÃæÅäÖÃ±£´æ
+    strcpy(g_sConfigreInfo.m_strScAppFilePath,
+        g_pCLoadToolsDlg->m_PageApplication.m_strScAppFilePath.GetBuffer(0));
+    strcpy(g_sConfigreInfo.m_strWifiFilePath,
+        g_pCLoadToolsDlg->m_PageApplication.m_strWifiFilePath.GetBuffer(0));
+    strcpy(g_sConfigreInfo.m_strLogoFilePath,
+        g_pCLoadToolsDlg->m_PageApplication.m_strLogoFilePath.GetBuffer(0));
+
+    // Baleï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ã±ï¿½ï¿½ï¿½
 //    g_sConfigreInfo.m_byLoadType = g_pCLoadToolsDlg->m_PageFileBale.m_iVposType
 }
 
 
 /****************************************************************************
-  º¯ÊýÃû     :  int G_GetActivePageIndex()
-  ÃèÊö       :  »ñÈ¡µ±Ç°»î¶¯ÊôÐÔÒ³Ë÷ÒýºÅ
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  µ±Ç°»î¶¯ÊôÐÔÒ³µÄË÷ÒýºÅ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-31   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int G_GetActivePageIndex()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½î¶¯ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½Ç°ï¿½î¶¯ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-31   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int G_GetActivePageIndex()
 {
@@ -113,37 +135,27 @@ int G_GetActivePageIndex()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  void G_MyShowMessage(int iMessageIndex)
-  ÃèÊö       :  ÔÚµ±Ç°»î¶¯µÄÊôÐÔÒ³ÉÏÏÔÊ¾ÐÅÏ¢¡£
-                È«¾Öº¯Êý£¬Ö÷ÒªÊÇÆðµ½ÓÃ»§½çÃæÓë±¾µØÏÂÔØÄ£¿é·ÖÀë¿ªÀ´
-  ÊäÈë²ÎÊý   :  1¡¢int iMessageIndex£ºÐÅÏ¢Ë÷ÒýºÅ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-31   V1.0        ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void G_MyShowMessage(int iMessageIndex)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½Úµï¿½Ç°ï¿½î¶¯ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò³ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ï¢ï¿½ï¿½
+                È«ï¿½Öºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½Ã»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ë±¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£ï¿½ï¿½ï¿½ï¿½ë¿ªï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  1ï¿½ï¿½int iMessageIndexï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½   :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-31   V1.0        ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void G_MyShowMessage(int iMessageIndex)
 {
     char strTemp[256];
     int iRet;
-    int iPageIndex;
-
     iRet = G_MyGetMessage(iMessageIndex, strTemp);
     if (0 != iRet)
     {
         return ;
     }
-    iPageIndex = g_pCLoadToolsDlg->m_sheet.GetActiveIndex();
-    switch (iPageIndex)
-    {
-    case 0:
-        g_pCLoadToolsDlg->m_PageApplication.MyShowMessage(strTemp);
-        break;
-    case 1:
-        g_pCLoadToolsDlg->m_PageFirmware.MyShowMessage(strTemp);
-        break;
-    }
+    /* Download is page 0; show status on Download page. */
+    g_pCLoadToolsDlg->m_PageApplication.MyShowMessage(strTemp);
 }
 
 
@@ -256,8 +268,8 @@ BOOL CLoadToolsDlg::OnInitDialog()
     SetIcon(m_hIcon, TRUE);            // Set big icon
     SetIcon(m_hIcon, FALSE);        // Set small icon
     // TODO: Add extra initialization here
+    m_bFactorySheetMode = FALSE;
     m_sheet.AddPage(&m_PageApplication);
-    m_sheet.AddPage(&m_PageFirmware);
     m_sheet.AddPage(&m_PageCommSet);
     m_sheet.AddPage(&m_PageFileBale);
     m_sheet.AddPage(&m_PageEditParam);
@@ -277,7 +289,7 @@ BOOL CLoadToolsDlg::OnInitDialog()
     // Leave a strip at top for the Miracle logo (~53 px, left-aligned)
     m_sheet.SetWindowPos(NULL, -10, 60, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     
-    g_pCLoadToolsDlg = this; // ±£´æµ±Ç°½çÃæÖ¸Õë
+    g_pCLoadToolsDlg = this; // ï¿½ï¿½ï¿½æµ±Ç°ï¿½ï¿½ï¿½ï¿½Ö¸ï¿½ï¿½
 
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -338,8 +350,37 @@ void CLoadToolsDlg::OnClose()
 {
 	// TODO: Add your message handler code here and/or call default
     g_pCLoadToolsDlg->m_PageApplication.m_bStopDownloadFlag = TRUE;
-    g_pCLoadToolsDlg->m_PageFirmware.m_bStopDownloadFlag = TRUE;
     Sleep(50);
     PortClose();
 	CDialog::OnClose();
+}
+
+
+void CLoadToolsDlg::ApplySheetMode(BOOL bFactory)
+{
+    /* D37/D38: Factory hides Edit param and Comm set; Task bale stays. */
+    if (bFactory == m_bFactorySheetMode)
+    {
+        return;
+    }
+    m_sheet.SetActivePage(0); /* Download */
+    if (bFactory)
+    {
+        if (!m_bFactorySheetMode)
+        {
+            m_sheet.RemovePage(&m_PageEditParam);
+            m_sheet.RemovePage(&m_PageCommSet);
+        }
+        m_bFactorySheetMode = TRUE;
+    }
+    else
+    {
+        /* Rebuild pages: Download, Comm set, Task bale, Edit param */
+        m_sheet.RemovePage(&m_PageFileBale);
+        m_sheet.AddPage(&m_PageCommSet);
+        m_sheet.AddPage(&m_PageFileBale);
+        m_sheet.AddPage(&m_PageEditParam);
+        m_bFactorySheetMode = FALSE;
+    }
+    m_sheet.SetActivePage(0);
 }

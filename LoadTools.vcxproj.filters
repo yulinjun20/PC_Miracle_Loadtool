@@ -39,13 +39,13 @@
     <ClCompile Include="PageCommSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="EnvJson.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="PageEditParam.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PageFileBale.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="PageFirmware.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ShowAppInfo.cpp">
@@ -92,13 +92,13 @@
     <ClInclude Include="PageCommSet.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="EnvJson.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="PageEditParam.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PageFileBale.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="PageFirmware.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Resource.h">
@@ -161,6 +161,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\复件 Search1.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\miracle_logo.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

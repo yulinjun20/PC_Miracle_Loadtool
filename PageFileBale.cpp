@@ -158,6 +158,8 @@ BOOL CPageFileBale::OnInitDialog()
     m_btnAddCreateFileSystem.SetIcon(IDI_ICON_UP, NULL, 40, 32);
     m_btnAddCreateFileSystem.SetShowText(TRUE);
     m_btnAddCreateFileSystem.SetActiveBgColor(RGB(200,200,200), FALSE);
+    // Create file system feature removed from UI.
+    GetDlgItem(IDC_BUTTON_ADD_CREATE_FILE_SYSTEM)->ShowWindow(SW_HIDE);
     
     m_btnDeleteTask.SetIcon(IDI_ICON_DELETE1, NULL, 45, 32);
     m_btnDeleteTask.SetShowText(TRUE);
@@ -526,54 +528,16 @@ void CPageFileBale::OnButtonAddParam()
 }
 
 /****************************************************************************
-  函数名     :  void CPageFileBale::OnButtonAddCreateFileSystem()
-  描述       :  响应添加重建文件系统任务事件函数
-  输入参数   :  无
-  输出参数   :  无
-  返回值     :  无
-  修改历史   :
-      修改人     修改时间    修改版本号   修改原因
-  1、 黄俊斌     2007-09-07   V1.0        创建
-  2、 黄俊斌     2007-05-17   V1.1        修改增加远程下载打包功能
+  Function   :  void CPageFileBale::OnButtonAddCreateFileSystem()
+  Note       :  Create file system feature removed; stub kept for message map.
 ****************************************************************************/
-void CPageFileBale::OnButtonAddCreateFileSystem() 
+void CPageFileBale::OnButtonAddCreateFileSystem()
 {
-    // TODO: Add your control notification handler code here
-    int i;
-
-    g_iFunctionSelect = 2;  // 设置成“确认/取消”选择界面
-    CVPOSSelect SDlg;
-    if (SDlg.DoModal() != IDOK)
-    {
-        return ;
-    }
-    strcpy((char*)m_sCreateSystem.m_abyDisplayInfo, "{CREATESYSTEM}");
-    m_sCreateSystem.m_hTree = m_tcTreeCtrlTaskList.InsertItem(
-        (char*)m_sCreateSystem.m_abyDisplayInfo);
-    m_sCreateSystem.m_byValidFlag = OBJECT_VALID;
-    GetDlgItem(IDC_BUTTON_ADD_CREATE_FILE_SYSTEM)->EnableWindow(FALSE);
-    GetDlgItem(IDC_BUTTON_ADD_APP_DELETE)->EnableWindow(FALSE);
-    GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
-    for (i=0; i<m_iDelAppTaskNumber; i++)
-    {
-        m_tcTreeCtrlTaskList.DeleteItem(m_sDelAppInfo[i].m_hTree);
-    }
-    if (OBJECT_VALID == m_sDelAllApp.m_byValidFlag)
-    {
-        m_tcTreeCtrlTaskList.DeleteItem(m_sDelAllApp.m_hTree);
-        m_sDelAllApp.m_byValidFlag = OBJECT_INVALID;
-    }
+    // Create file system feature removed.
 }
 
 /****************************************************************************
-  函数名     :  void CPageFileBale::OnButtonAddAppDelete() 
-  描述       :  添加删除应用程序任务函数
-  输入参数   :  无
-  输出参数   :  无
-  返回值     :  无
-  修改历史   :
-      修改人     修改时间    修改版本号   修改原因
-  1、 黄俊斌     2007-09-07   V1.0        创建
+  Function   :  void CPageFileBale::OnButtonAddAppDelete()
 ****************************************************************************/
 void CPageFileBale::OnButtonAddAppDelete() 
 {
@@ -805,16 +769,9 @@ void CPageFileBale::OnButtonStartBale()
     iTaskNum = 0;
 
     // 创建文件系统任务和删除应用任务
-    if (OBJECT_VALID == m_sCreateSystem.m_byValidFlag)
+    if (0) /* create file system removed */
     {
-        DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
-        memset(strTemp, 0, sizeof(strTemp));
-        strTemp[0] = BALE_TASK_CREATE_FILE;   // 重建文件系统
-        fwrite(strTemp, 1, 1, fpBale);
-        memcpy(strTemp, "81921170", 8);
-        fwrite(strTemp, 1, 8, fpBale);
-        iOffset += 9;
-        iTaskNum++;
+        ;
     }
     else if (OBJECT_VALID==m_sDelAllApp.m_byValidFlag)
     {
@@ -997,8 +954,11 @@ void CPageFileBale::OnButtonStartBale()
     if (m_bAddVosFlag)
     {
         DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
-        p = strstr((char*)&m_sVosFileInfo.m_abyDisplayInfo[6], "}{");
-        p += 2;
+        p = strstr((char*)m_sVosFileInfo.m_abyDisplayInfo, "}{");
+        if (NULL != p) p = strstr(p + 2, "}{");  // {OS|VOS}{pos}{path}
+        if (NULL != p)
+        {
+            p += 2;
         strcpy((char*)strFileName, (char*)p);
         iLen = strlen((char*)strFileName);
         strFileName[iLen-1] = 0;
@@ -1013,6 +973,7 @@ void CPageFileBale::OnButtonStartBale()
             DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
             iOffset += 2+k;
             iTaskNum++;
+        }
         }
     }
     
@@ -1124,13 +1085,8 @@ void CPageFileBale::SaveConfig()
         MessageBox("Create configure file error.");
         return ;
     }
-    if (!GetDlgItem(IDC_BUTTON_ADD_CREATE_FILE_SYSTEM)->IsWindowEnabled())
-    {
-        fwrite(m_sCreateSystem.m_abyDisplayInfo, 1, 
-            strlen((char*)m_sCreateSystem.m_abyDisplayInfo), fp);
-        fwrite("\n", 1, 1, fp);
-    }
-    else if (OBJECT_VALID==m_sDelAllApp.m_byValidFlag)
+    // Create file system feature removed: never persist CREATESYSTEM.
+    if (OBJECT_VALID==m_sDelAllApp.m_byValidFlag)
     {
         fwrite(m_sDelAllApp.m_abyDisplayInfo, 1, 
             strlen((char*)m_sDelAllApp.m_abyDisplayInfo), fp);
@@ -1278,14 +1234,9 @@ void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
             j = 0;
 
             p = strstr(strTemp, "{CREATESYSTEM}");
-            if ((NULL!=p) && (OBJECT_INVALID==m_sCreateSystem.m_byValidFlag))
+            if (NULL!=p)
             {
-                m_sCreateSystem.m_byValidFlag = OBJECT_VALID;
-                strcpy((char*)m_sCreateSystem.m_abyDisplayInfo, strTemp);
-                m_sCreateSystem.m_hTree = m_tcTreeCtrlTaskList.InsertItem(strTemp);
-                GetDlgItem(IDC_BUTTON_ADD_APP_DELETE)->EnableWindow(FALSE);
-                GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
-                GetDlgItem(IDC_BUTTON_ADD_CREATE_FILE_SYSTEM)->EnableWindow(FALSE);
+                // Create file system feature removed: ignore CREATESYSTEM in config.
             }
 
             p = strstr(strTemp, "{DELALLAPP}");
@@ -1371,7 +1322,11 @@ void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
                 m_iAppendFileNumber++;
             }
 
-            p = strstr(strTemp, "{VOS}");
+            p = strstr(strTemp, "{OS}");
+            if (NULL == p)
+            {
+                p = strstr(strTemp, "{VOS}");  // legacy display tag
+            }
             if (NULL != p)
             {
                 if (GetDlgItem(IDC_BUTTON_ADD_VOS)->IsWindowEnabled())
@@ -1435,7 +1390,7 @@ void CPageFileBale::OnButtonAddVos()
     // TODO: Add your control notification handler code here
     int i;
     char strDisplayInfo[300];
-    static char BASED_CODE szMergeFilter[] = _T("VOS(*.bin)|*.bin||)");
+    static char BASED_CODE szMergeFilter[] = _T("OS(*.bin)|*.bin||)");
     CString filter, strTemp;
 
     filter = szMergeFilter;
@@ -1450,7 +1405,7 @@ void CPageFileBale::OnButtonAddVos()
         switch (i)
         {
         case -1:
-            MessageBox("This file is not VOS file.");
+            MessageBox("This file is not OS file.");
             return;
         case -2:
             MessageBox("Open application file error.");
@@ -1470,7 +1425,7 @@ void CPageFileBale::OnButtonAddVos()
         }
 
         memset(strDisplayInfo, 0, sizeof(strDisplayInfo));
-        sprintf(strDisplayInfo, "{VOS}{%s}{%s}", 
+        sprintf(strDisplayInfo, "{OS}{%s}{%s}", 
             &g_strVposSelect[g_sConfigreInfo.m_byPosType][0], strTemp.GetBuffer(0));
 
         strcpy((char*)m_sVosFileInfo.m_abyDisplayInfo, 

@@ -13,13 +13,24 @@
 #define XON            0x11
 #define XOFF        0x13
 
-static HANDLE g_shCommPort = INVALID_HANDLE_VALUE;  // ÓÃÓÚ±£´æ´ò¿ªµÄ´®¿Ú¾ä±ú£¬Èç¹ûÎ´´ò¿ªÔò¸³Öµ-1
-static int g_siCurPortNo = 0xff;  // µ±Ç°¶Ë¿ÚºÅ£¬È¡Öµ1¡¢2¡¢3¡¢4¡­¡­£¬²»¿ÉÈ¡0£¬0xff±íÊ¾ÒÑ¹Ø±Õ
+static HANDLE g_shCommPort = INVALID_HANDLE_VALUE;  // ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½ò¿ªµÄ´ï¿½ï¿½Ú¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½Ö?1
+static int g_siCurPortNo = 0xff;  // ï¿½ï¿½Ç°ï¿½Ë¿ÚºÅ£ï¿½È¡Öµ1ï¿½ï¿½2ï¿½ï¿½3ï¿½ï¿½4ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡0ï¿½ï¿½0xffï¿½ï¿½Ê¾ï¿½Ñ¹Ø±ï¿½
+
+/* Per-thread active handle for factory multi-download */
+static __declspec(thread) HANDLE t_hCommPort = INVALID_HANDLE_VALUE;
+static __declspec(thread) BOOL t_bExternalPort = FALSE; /* SerClose must not CloseHandle */
+
+static HANDLE ActiveComm(void)
+{
+    if (t_hCommPort != INVALID_HANDLE_VALUE)
+        return t_hCommPort;
+    return g_shCommPort;
+}
 
 extern CONFIG_INFO g_sConfigreInfo;
-extern DWORD g_adwBauds[8];
+extern DWORD g_adwBauds[10];
 
-int g_iCommCheckType = 0;  //Ð£ÑéÀàÐÍ±êÖ¾ 0:Lrc, 1:CRC16, 2:CRC32, ÆäËü£º´íÎó
+int g_iCommCheckType = 0;  //Ð£ï¿½ï¿½ï¿½ï¿½ï¿½Í±ï¿½Ö¾ 0:Lrc, 1:CRC16, 2:CRC32, ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 
 #ifdef _COMM_DEBUG_
@@ -72,14 +83,14 @@ Serial port Communication start
 
             
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  »ñÈ¡µ±Ç°¹¤×÷´®¿Ú¶Ë¿ÚºÅ
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½È¡ï¿½ï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú¶Ë¿Úºï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 int GetCurPortNo()
 {
@@ -87,17 +98,28 @@ int GetCurPortNo()
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ¹Ø±Õµ±Ç°¹¤×÷µÄ´®¿ÚºÅ
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½Ø±Õµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½Ä´ï¿½ï¿½Úºï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 void SerClose(void)
 {
+    if (t_bExternalPort)
+    {
+        /* Factory-bound port: only clear TLS; caller SerClosePort later */
+        t_hCommPort = INVALID_HANDLE_VALUE;
+        t_bExternalPort = FALSE;
+        return;
+    }
+    if (t_hCommPort != INVALID_HANDLE_VALUE && t_hCommPort == g_shCommPort)
+    {
+        t_hCommPort = INVALID_HANDLE_VALUE;
+    }
     if (g_shCommPort != INVALID_HANDLE_VALUE)
     {
         CloseHandle(g_shCommPort);
@@ -108,12 +130,12 @@ void SerClose(void)
 
 
 /****************************************************************************
-  º¯ÊýÃû     :  BYTE SerWrite(BYTE *lpByte, WORD dwBytesToWrite, WORD TimeOut)
-  ÃèÊö       :  Ïò´®¿ÚÐ´Êý¾Ý
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *lpByte : ÒªÐ´ÈëµÄÊý¾Ý°ü
-                2¡¢WORD dwBytesToWrite : ÒªÐ´ÈëµÄÊý¾Ý°ülpByteµÄ³¤¶È
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  0:³É¹¦·¢ËÍ / 1:·¢ËÍµÄÊý¾Ý°ü³¤¶ÈÎª0 / 0xff:·¢ËÍÊ§°Ü
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  BYTE SerWrite(BYTE *lpByte, WORD dwBytesToWrite, WORD TimeOut)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ò´®¿ï¿½Ð´ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *lpByte : ÒªÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿?
+                2ï¿½ï¿½WORD dwBytesToWrite : ÒªÐ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½lpByteï¿½Ä³ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  0:ï¿½É¹ï¿½ï¿½ï¿½ï¿½ï¿½ / 1:ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½ï¿½Îª0 / 0xff:ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½
 ****************************************************************************/
 BYTE SerWrite(BYTE *lpByte, WORD wBytesToWrite)
 {
@@ -125,20 +147,20 @@ BYTE SerWrite(BYTE *lpByte, WORD wBytesToWrite)
 
     if (wBytesToWrite == 0)
         return TRUE;
-    fWriteStat = WriteFile(g_shCommPort, lpByte, 1, &dwBytesWritten, NULL); 
+    fWriteStat = WriteFile(ActiveComm(), lpByte, 1, &dwBytesWritten, NULL); 
     if (!fWriteStat)
     {
-        (void)ClearCommError(g_shCommPort, &dwErrorFlags, &ComStat );
+        (void)ClearCommError(ActiveComm(), &dwErrorFlags, &ComStat );
         return 0xff;
     }
     if (wBytesToWrite > 1)
     {
-        fWriteStat = WriteFile(g_shCommPort, lpByte+1, wBytesToWrite-1,
+        fWriteStat = WriteFile(ActiveComm(), lpByte+1, wBytesToWrite-1,
                                &dwBytesWritten, NULL); 
         if (!fWriteStat)
         {
             // some other error occurred
-            (void)ClearCommError(g_shCommPort, &dwErrorFlags, &ComStat );
+            (void)ClearCommError(ActiveComm(), &dwErrorFlags, &ComStat );
             return 0xff;
         }
     } 
@@ -149,11 +171,11 @@ BYTE SerWrite(BYTE *lpByte, WORD wBytesToWrite)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ¶ÁÈ¡´®¿ÚÊý¾Ý
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :    
-  ·µ»ØÖµ     :  0±íÊ¾³É¹¦£¬ ÆäËûÖµ±íÊ¾Ê§°Ü
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :    
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  0ï¿½ï¿½Ê¾ï¿½É¹ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½Ê¾Ê§ï¿½ï¿½
 ****************************************************************************/
 BYTE SerRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs)
 {
@@ -168,8 +190,8 @@ BYTE SerRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs)
     dwBeginTick = GetTickCount();
     while (1)
     {
-        ClearCommError(g_shCommPort, &dwErrorFlags, &ComStat);
-        fReadStat = ReadFile(g_shCommPort, lpByte+i, wLength-i, &dwReaded, NULL);
+        ClearCommError(ActiveComm(), &dwErrorFlags, &ComStat);
+        fReadStat = ReadFile(ActiveComm(), lpByte+i, wLength-i, &dwReaded, NULL);
         if (!fReadStat)
         {
             MessageBox(NULL, "Failed to receive data!", "ERROR", MB_OK);
@@ -200,30 +222,31 @@ BYTE SerRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  Çå³ý´®¿Ú»º³å
-  ÊäÈë²ÎÊý   :  £±¡¢DWORD mode¡¡: Çå³ý·½Ê½£¬PURGE_TXABORT | PURGE_RXABORT |
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú»ï¿½ï¿½ï¿?
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½ï¿½ï¿½DWORD modeï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½PURGE_TXABORT | PURGE_RXABORT |
                         PURGE_TXCLEAR | PURGE_RXCLEAR
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 void PurgeCommBuf(DWORD mode)
 {
-    PurgeComm(g_shCommPort, mode);
+    HANDLE h = ActiveComm();
+    if (h != INVALID_HANDLE_VALUE) PurgeComm(h, mode);
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  
-  ÃèÊö       :  ´ò¿ª´®¿Ú
-  ÊäÈë²ÎÊý   :  
-  Êä³ö²ÎÊý   :  
-  ·µ»ØÖµ     :  
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ò¿ª´ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 static BOOL OpenSerialPort(LPCTSTR DevName,DWORD baud,BYTE databit,BYTE parity,BYTE stopbit)
 {
@@ -257,8 +280,7 @@ static BOOL OpenSerialPort(LPCTSTR DevName,DWORD baud,BYTE databit,BYTE parity,B
     {
         dwError = GetLastError();
         // an error occurred, try to recover
-        MsgStr.Format("<CE-%u>", dwError);
-        MessageBox(NULL, MsgStr, "SetupComm", MB_OK);
+        /* silent fail */
         CloseHandle(g_shCommPort);
         g_shCommPort = INVALID_HANDLE_VALUE;
         return FALSE;
@@ -328,8 +350,7 @@ static BOOL OpenSerialPort(LPCTSTR DevName,DWORD baud,BYTE databit,BYTE parity,B
     {
         dwError = GetLastError();
         // an error occurred, try to recover
-        MsgStr.Format("<CE-%u>", dwError);
-        MessageBox(NULL, MsgStr, "SetCommState", MB_OK);
+        /* silent fail */
         CloseHandle(g_shCommPort);
         g_shCommPort = INVALID_HANDLE_VALUE;
         return FALSE;
@@ -343,38 +364,43 @@ static BOOL OpenSerialPort(LPCTSTR DevName,DWORD baud,BYTE databit,BYTE parity,B
 
 
 /****************************************************************************
-  º¯ÊýÃû     :  BYTE SerOpen(int iPortNo, DWORD BaudRate)
-  ÃèÊö       :  ´ò¿ª´®¿Ú
-  ÊäÈë²ÎÊý   :  1¡¢int iPortNo : ´®¿Ú¶Ë¿ÚºÅ£¬È¡Öµ£±¡¢£²¡¢£³¡¢£´¡­¡­
-                2¡¢DWORD BaudRate : ´®¿Ú¹¤×÷²¨ÌØÂÊ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  0 : ³É¹¦¡¡/ 0xff : Ê§°Ü
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  BYTE SerOpen(int iPortNo, DWORD BaudRate)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ò¿ª´ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½int iPortNo : ï¿½ï¿½ï¿½Ú¶Ë¿ÚºÅ£ï¿½È¡Öµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                2ï¿½ï¿½DWORD BaudRate : ï¿½ï¿½ï¿½Ú¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  0 : ï¿½É¹ï¿½ï¿½ï¿½/ 0xff : Ê§ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 BYTE SerOpen(int iPortNo, DWORD BaudRate)
 {
-    char DevName[10];
-    
+    char DevName[32];
+
     sprintf(DevName,"\\\\.\\COM%d", iPortNo);
 
-    if (OpenSerialPort(DevName, BaudRate, 8, NOPARITY,ONESTOPBIT) ==  FALSE)
+    if (OpenSerialPort(DevName, BaudRate, 8, NOPARITY, ONESTOPBIT) == FALSE)
         return 0xff;
 
     g_siCurPortNo = iPortNo;
+    t_hCommPort = g_shCommPort;
+    t_bExternalPort = FALSE;
     return 0;
 }
+
 
 HANDLE GetSerialHandle(void)
 {
     return g_shCommPort;
 }
 
-// ´®¿ÚÇå»º³å
+// ï¿½ï¿½ï¿½ï¿½ï¿½å»ºï¿½ï¿½
 void SerReset(void)
 {
-    PurgeComm(g_shCommPort, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
+    HANDLE h = ActiveComm();
+    if (h != INVALID_HANDLE_VALUE)
+        PurgeComm(h, PURGE_RXABORT | PURGE_RXCLEAR | PURGE_TXABORT | PURGE_TXCLEAR);
 }
 
 
@@ -936,7 +962,7 @@ BOOL SetupUsbPara()
 }
 //extern
 
-// ´ò¿ªUSBÉè±¸£¬¶Ô32¸öusbÉè±¸½øÐÐÂÖÁ÷´ò¿ª£¬Ö±µ½ÓÐ³É¹¦´ò¿ªµÄ¾Í·µ»Ø
+// ï¿½ï¿½USBï¿½è±¸ï¿½ï¿½ï¿½ï¿½32ï¿½ï¿½usbï¿½è±¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ò¿ª£ï¿½Ö±ï¿½ï¿½ï¿½Ð³É¹ï¿½ï¿½ò¿ªµÄ¾Í·ï¿½ï¿½ï¿½
 BOOL OpenUsbDevice()
 {
     int Trycnt;
@@ -947,7 +973,7 @@ BOOL OpenUsbDevice()
     
     for(Trycnt=0; Trycnt<TRYNUM; Trycnt++)
     {
-        // Ê¹ÓÃUSBÉè±¸IDºÅ´ò¿ªUSBÉè±¸
+        // Ê¹ï¿½ï¿½USBï¿½è±¸IDï¿½Å´ï¿½USBï¿½è±¸
         g_hFile = OpenUsbDeviceSub( (LPGUID)&GUID_CLASS_I82930_BULK, 
             g_completeDeviceName);
         if (g_hFile == INVALID_HANDLE_VALUE)
@@ -978,21 +1004,21 @@ USB Communication end
 
 
 
-WORD g_awhalfCrc16CCITT[16]={ /* CRC °ë×Ö½ÚÓàÊ½±í */ 
+WORD g_awhalfCrc16CCITT[16]={ /* CRC ï¿½ï¿½ï¿½Ö½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ */ 
     0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7, 
     0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef
 };
 
 /****************************************************************************
-  º¯ÊýÃû     :  void Crc16CCITT(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[2]) 
-  ÃèÊö       :  ÓÃÒÆÎ»µÄ·½·¨¼ÆËãÒ»×éÊý×ÖµÄ16Î»CRC-CCITTÐ£ÑéÖµ
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *pbyDataIn : Òª½øÐÐ16Î»CRC-CCITT¼ÆËãµÄÊý
-                2¡¢WORD dwDataLen : pbyDataInÊý×éµÄ³¤¶È×î´óÖµ65535
-  Êä³ö²ÎÊý   :  1¡¢BYTE abyCrcOut[2] : 16Î»CRC-CCITT¼ÆËãµÄ½á¹û
-  ·µ»ØÖµ     :  ÎÞ
-  ÐÞ¸ÄÀúÊ·   :
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void Crc16CCITT(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[2]) 
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½Î»ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½Öµï¿½16Î»CRC-CCITTÐ£ï¿½ï¿½Öµ
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbyDataIn : Òªï¿½ï¿½ï¿½ï¿½16Î»CRC-CCITTï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
+                2ï¿½ï¿½WORD dwDataLen : pbyDataInï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Öµ65535
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE abyCrcOut[2] : 16Î»CRC-CCITTï¿½ï¿½ï¿½ï¿½Ä½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 void Crc16CCITT(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[2])
 {
@@ -1032,17 +1058,17 @@ BYTE LocalWrite(BYTE *pbySendData, WORD wDataLen)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  int Crc16SendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
-  ÃèÊö       :  Êý¾Ý°ü·¢ËÍº¯Êý£¬´øCRC16-CCITTÐ£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *pbySendData£ºÒª·¢ËÍµÄÊý¾Ý°ü
-                2¡¢WORD wDataLen£ºÊý¾Ý°ü³¤¶È
-                3¡¢WORD wCmd£ºÃüÁîÂë
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  SUCCESS£º·¢ËÍ³É¹¦ / SEND_PACKET_ERROR£º·¢ËÍ´íÎó 
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int Crc16SendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CRC16-CCITTÐ£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbySendDataï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý°ï¿½
+                2ï¿½ï¿½WORD wDataLenï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½ï¿½
+                3ï¿½ï¿½WORD wCmdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Í³É¹ï¿½ / SEND_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½ 
                 / PACKET_LEN_TOO_LONG
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int Crc16SendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
 {
@@ -1081,24 +1107,24 @@ BYTE LocalRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs)
     {
         if (ReadUsbDevice(lpByte, wLength, dwTimeoutMs) > 0)
         {
-            return 0;  // ³É¹¦
+            return 0;  // ï¿½É¹ï¿½
         }
         else
         {
-            return 0xff;  // Ê§°Ü
+            return 0xff;  // Ê§ï¿½ï¿½
         }
     }
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  BYTE PortOpen()
-  ÃèÊö       :  ´ò¿ªÉè±¸¶Ë¿Ú
-  ÊäÈë²ÎÊý   :  ÎÞ
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  0 : ³É¹¦¡¡/ 0xff : Ê§°Ü
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  BYTE PortOpen()
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½è±¸ï¿½Ë¿ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  0 : ï¿½É¹ï¿½ï¿½ï¿½/ 0xff : Ê§ï¿½ï¿½
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½
 ****************************************************************************/
 BYTE PortOpen()
 {
@@ -1133,18 +1159,18 @@ void PortClose()
 
 }
 /****************************************************************************
-  º¯ÊýÃû     :  int Crc16RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
-  ÃèÊö       :  Êý¾Ý°ü½ÓÊÕº¯Êý£¬´øCRC16-CCITTÐ£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢DWORD dwTimeoutMs£º½ÓÊÕ³¬Ê±Ê±¼ä£¬Ê±¼äµ¥Î»ÊÇºÁÃë
-  Êä³ö²ÎÊý   :  1¡¢BYTE *pbyRecvData£º½ÓÊÕµ½µÄËùÓÐÊý¾Ý£¬°üÀ¨°üÍ·ºÍÐ£Ñé£¬´«Èë
-                   µÄpbyRecvDataÖ¸ÏòµÄÄÚ´æ²»µÃÐ¡ÓÚ256×Ö½Ú
-                2¡¢WORD *pwPacketetLen£º½ÓÊÕµ½µÄËùÓÐÊý¾ÝµÄ³¤¶È
-  ·µ»ØÖµ     :  SUCCESS£º½ÓÊÕ³É¹¦ / CRC_CHECK_ERROR£ºÊý¾Ý°üCRCÐ£Ñé´íÎó
-                / PACKET_LEN_ERROR£ºÊý¾Ý°ü³¤¶È´íÎó / RECV_TIMEOUT£º³¬Ê± 
-                / RECV_PACKET_ERROR£º½ÓÊÕ´íÎó 
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int Crc16RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Õºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½CRC16-CCITTÐ£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½DWORD dwTimeoutMsï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½Ê±Ê±ï¿½ä£¬Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbyRecvDataï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½Ð£ï¿½é£¬ï¿½ï¿½ï¿½ï¿½
+                   ï¿½ï¿½pbyRecvDataÖ¸ï¿½ï¿½ï¿½ï¿½Ú´æ²»ï¿½ï¿½Ð¡ï¿½ï¿?56ï¿½Ö½ï¿½
+                2ï¿½ï¿½WORD *pwPacketetLenï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Õ³É¹ï¿½ / CRC_CHECK_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½CRCÐ£ï¿½ï¿½ï¿½ï¿½ï¿?
+                / PACKET_LEN_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½ / RECV_TIMEOUTï¿½ï¿½ï¿½ï¿½Ê± 
+                / RECV_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Õ´ï¿½ï¿½ï¿½ 
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int Crc16RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
 {
@@ -1153,7 +1179,7 @@ int Crc16RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
     WORD wPacketLen = 0;
     DWORD   dwBegintick, dwCurtick;
 
-    dwBegintick = GetTickCount();  // Ê±¼äµ¥Î»ÊÇºÁÃë
+    dwBegintick = GetTickCount();  // Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
     while (1)
     {
         dwCurtick = GetTickCount();
@@ -1198,17 +1224,17 @@ int Crc16RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
 
 
 /****************************************************************************
-  º¯ÊýÃû     :  int LrcSendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
-  ÃèÊö       :  Êý¾Ý°ü·¢ËÍº¯Êý£¬´øLrcÐ£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *pbySendData£ºÒª·¢ËÍµÄÊý¾Ý°ü
-                2¡¢WORD wDataLen£ºÊý¾Ý°ü³¤¶È
-                3¡¢WORD wCmd£ºÃüÁîÂë
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  SUCCESS£º·¢ËÍ³É¹¦ / SEND_PACKET_ERROR£º·¢ËÍ´íÎó 
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int LrcSendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½LrcÐ£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbySendDataï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý°ï¿½
+                2ï¿½ï¿½WORD wDataLenï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½ï¿½
+                3ï¿½ï¿½WORD wCmdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Í³É¹ï¿½ / SEND_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½ 
                 / PACKET_LEN_TOO_LONG
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int LrcSendPacket(BYTE *pbySendData, WORD wDataLen, BYTE byCmd)
 {
@@ -1242,18 +1268,18 @@ int LrcSendPacket(BYTE *pbySendData, WORD wDataLen, BYTE byCmd)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  int LrcRecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
-  ÃèÊö       :  TMSÊý¾Ý°ü½ÓÊÕº¯Êý£¬´øLrcÐ£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢DWORD dwTimeoutMs£º½ÓÊÕ³¬Ê±Ê±¼ä£¬Ê±¼äµ¥Î»ÊÇºÁÃë
-  Êä³ö²ÎÊý   :  1¡¢BYTE *pbyRecvData£º½ÓÊÕµ½µÄËùÓÐÊý¾Ý£¬°üÀ¨°üÍ·ºÍÐ£Ñé£¬´«Èë
-                   µÄpbyRecvDataÖ¸ÏòµÄÄÚ´æ²»µÃÐ¡ÓÚ256×Ö½Ú
-                2¡¢WORD *pwPacketetLen£º½ÓÊÕµ½µÄËùÓÐÊý¾ÝµÄ³¤¶È
-  ·µ»ØÖµ     :  SUCCESS£º½ÓÊÕ³É¹¦ / CRC_CHECK_ERROR£ºÊý¾Ý°üLrcÐ£Ñé´íÎó
-                / PACKET_LEN_ERROR£ºÊý¾Ý°ü³¤¶È´íÎó / RECV_TIMEOUT£º³¬Ê± 
-                / RECV_PACKET_ERROR£º½ÓÊÕ´íÎó 
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int LrcRecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
+  ï¿½ï¿½ï¿½ï¿½       :  TMSï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Õºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½LrcÐ£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½DWORD dwTimeoutMsï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½Ê±Ê±ï¿½ä£¬Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbyRecvDataï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½Ð£ï¿½é£¬ï¿½ï¿½ï¿½ï¿½
+                   ï¿½ï¿½pbyRecvDataÖ¸ï¿½ï¿½ï¿½ï¿½Ú´æ²»ï¿½ï¿½Ð¡ï¿½ï¿?56ï¿½Ö½ï¿½
+                2ï¿½ï¿½WORD *pwPacketetLenï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Õ³É¹ï¿½ / CRC_CHECK_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½LrcÐ£ï¿½ï¿½ï¿½ï¿½ï¿?
+                / PACKET_LEN_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½ / RECV_TIMEOUTï¿½ï¿½ï¿½ï¿½Ê± 
+                / RECV_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Õ´ï¿½ï¿½ï¿½ 
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int LrcRecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
 {
@@ -1262,7 +1288,7 @@ int LrcRecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
     WORD wPacketLen = 0;
     DWORD dwBegintick, dwCurtick;
 
-    dwBegintick = GetTickCount();  // Ê±¼äµ¥Î»ÊÇºÁÃë
+    dwBegintick = GetTickCount();  // Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
     while (1)
     {
         dwCurtick = GetTickCount();
@@ -1376,15 +1402,15 @@ const DWORD gc_dwCrc32Table[256]={
 };
 
 /****************************************************************************
-  º¯ÊýÃû     :  void QuickCrc32(BYTE *buf, DWORD len, BYTE crcout[4])
-  ÃèÊö       :  ²é±í·½Ê½¼ÆËãCRC
-                ËÙ¶È¿ì£¬Õ¼ÓÃ¿Õ¼ä´ó
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *buf : Òª½øÐÐ32Î»CRC¼ÆËãµÄÊý
-                2¡¢ushort len : bufÊý×éµÄ³¤¶È
-  Êä³ö²ÎÊý   :  1¡¢BYTE crcout[4] : 32Î»CRC¼ÆËãµÄ½á¹û
-  ·µ»ØÖµ     :  ÎÞBYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[2]
-  ÐÞ¸ÄÀúÊ·   :
-      1¡¢ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  void QuickCrc32(BYTE *buf, DWORD len, BYTE crcout[4])
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½ï¿½ï¿½Ê½ï¿½ï¿½ï¿½ï¿½CRC
+                ï¿½Ù¶È¿ì£¬Õ¼ï¿½Ã¿Õ¼ï¿½ï¿?
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *buf : Òªï¿½ï¿½ï¿½ï¿½32Î»CRCï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
+                2ï¿½ï¿½ushort len : bufï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿?
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE crcout[4] : 32Î»CRCï¿½ï¿½ï¿½ï¿½Ä½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  ï¿½ï¿½BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[2]
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :
+      1ï¿½ï¿½ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
 
 ****************************************************************************/
 void QuickCrc32(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[4])
@@ -1406,24 +1432,24 @@ void QuickCrc32(BYTE *pbyDataIn, DWORD dwDataLen, BYTE abyCrcOut[4])
 
 
 /****************************************************************************
-  º¯ÊýÃû     :  int Crc32SendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
-  ÃèÊö       :  Êý¾Ý°ü·¢ËÍº¯Êý£¬´øCrc32Ð£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢BYTE *pbySendData£ºÒª·¢ËÍµÄÊý¾Ý°ü
-                2¡¢WORD wDataLen£ºÊý¾Ý°ü³¤¶È
-                3¡¢WORD wCmd£ºÃüÁîÂë
-  Êä³ö²ÎÊý   :  ÎÞ
-  ·µ»ØÖµ     :  SUCCESS£º·¢ËÍ³É¹¦ / SEND_PACKET_ERROR£º·¢ËÍ´íÎó 
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int Crc32SendPacket(BYTE *pbySendData, WORD wDataLen, WORD wCmd)
+  ï¿½ï¿½ï¿½ï¿½       :  ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Íºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Crc32Ð£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbySendDataï¿½ï¿½Òªï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½Ý°ï¿½
+                2ï¿½ï¿½WORD wDataLenï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½ï¿½
+                3ï¿½ï¿½WORD wCmdï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Í³É¹ï¿½ / SEND_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Í´ï¿½ï¿½ï¿½ 
                 / PACKET_LEN_TOO_LONG
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int Crc32SendPacket(BYTE *pbySendData, WORD wDataLen, BYTE byCmd)
 {
-    static BYTE abyBuff[4500];
+    static BYTE abyBuff[4200]; /* 5+4096 payload + STX/CRC */
     BYTE byRet;
 
-    if (wDataLen > 4096)
+    if (wDataLen > 4101) /* DL_DATA_HEADER(5)+4096 */
     {
         return PACKET_LEN_TOO_LONG;
     }
@@ -1442,18 +1468,18 @@ int Crc32SendPacket(BYTE *pbySendData, WORD wDataLen, BYTE byCmd)
 }
 
 /****************************************************************************
-  º¯ÊýÃû     :  int Crc32RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
-  ÃèÊö       :  TMSÊý¾Ý°ü½ÓÊÕº¯Êý£¬´øCrc32Ð£Ñé
-  ÊäÈë²ÎÊý   :  1¡¢DWORD dwTimeoutMs£º½ÓÊÕ³¬Ê±Ê±¼ä£¬Ê±¼äµ¥Î»ÊÇºÁÃë
-  Êä³ö²ÎÊý   :  1¡¢BYTE *pbyRecvData£º½ÓÊÕµ½µÄËùÓÐÊý¾Ý£¬°üÀ¨°üÍ·ºÍÐ£Ñé£¬´«Èë
-                   µÄpbyRecvDataÖ¸ÏòµÄÄÚ´æ²»µÃÐ¡ÓÚ256×Ö½Ú
-                2¡¢WORD *pwPacketetLen£º½ÓÊÕµ½µÄËùÓÐÊý¾ÝµÄ³¤¶È
-  ·µ»ØÖµ     :  SUCCESS£º½ÓÊÕ³É¹¦ / CRC_CHECK_ERROR£ºÊý¾Ý°üCRCÐ£Ñé´íÎó
-                / PACKET_LEN_ERROR£ºÊý¾Ý°ü³¤¶È´íÎó / RECV_TIMEOUT£º³¬Ê± 
-                / RECV_PACKET_ERROR£º½ÓÊÕ´íÎó 
-  ÐÞ¸ÄÀúÊ·   :  
-      ÐÞ¸ÄÈË     ÐÞ¸ÄÊ±¼ä    ÐÞ¸Ä°æ±¾ºÅ   ÐÞ¸ÄÔ­Òò
-  1¡¢ »Æ¿¡±ó     2007-08-30  V1.0         ´´½¨
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½     :  int Crc32RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
+  ï¿½ï¿½ï¿½ï¿½       :  TMSï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½Õºï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Crc32Ð£ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½DWORD dwTimeoutMsï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½Ê±Ê±ï¿½ä£¬Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?  :  1ï¿½ï¿½BYTE *pbyRecvDataï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½Ð£ï¿½é£¬ï¿½ï¿½ï¿½ï¿½
+                   ï¿½ï¿½pbyRecvDataÖ¸ï¿½ï¿½ï¿½ï¿½Ú´æ²»ï¿½ï¿½Ð¡ï¿½ï¿?56ï¿½Ö½ï¿½
+                2ï¿½ï¿½WORD *pwPacketetLenï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ³ï¿½ï¿½ï¿½
+  ï¿½ï¿½ï¿½ï¿½Öµ     :  SUCCESSï¿½ï¿½ï¿½ï¿½ï¿½Õ³É¹ï¿½ / CRC_CHECK_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½CRCÐ£ï¿½ï¿½ï¿½ï¿½ï¿?
+                / PACKET_LEN_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Ý°ï¿½ï¿½ï¿½ï¿½È´ï¿½ï¿½ï¿½ / RECV_TIMEOUTï¿½ï¿½ï¿½ï¿½Ê± 
+                / RECV_PACKET_ERRORï¿½ï¿½ï¿½ï¿½ï¿½Õ´ï¿½ï¿½ï¿½ 
+  ï¿½Þ¸ï¿½ï¿½ï¿½Ê·   :  
+      ï¿½Þ¸ï¿½ï¿½ï¿½     ï¿½Þ¸ï¿½Ê±ï¿½ï¿½    ï¿½Þ¸Ä°æ±¾ï¿½ï¿½   ï¿½Þ¸ï¿½Ô­ï¿½ï¿½
+  1ï¿½ï¿½ ï¿½Æ¿ï¿½ï¿½ï¿½     2007-08-30  V1.0         ï¿½ï¿½ï¿½ï¿½
 ****************************************************************************/
 int Crc32RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
 {
@@ -1462,7 +1488,7 @@ int Crc32RecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
     WORD wPacketLen = 0;
     DWORD dwBegintick, dwCurtick;
 
-    dwBegintick = GetTickCount();  // Ê±¼äµ¥Î»ÊÇºÁÃë
+    dwBegintick = GetTickCount();  // Ê±ï¿½äµ¥Î»ï¿½Çºï¿½ï¿½ï¿½
     while (1)
     {
         dwCurtick = GetTickCount();
@@ -1533,4 +1559,98 @@ int CmdRecvPacket(BYTE *pbyRecvData, WORD *pwPacketetLen, DWORD dwTimeoutMs)
     default:
         return PACKET_CHECK_TYPE_ERROR;
     }
+}
+
+
+/****************************************************************************
+  Factory multi-handle API
+****************************************************************************/
+BYTE SerOpenPort(int iPortNo, DWORD BaudRate, HANDLE *phOut)
+{
+    char DevName[32];
+    HANDLE hSave;
+    BOOL ok;
+
+    if (NULL == phOut)
+        return 0xff;
+    *phOut = INVALID_HANDLE_VALUE;
+
+    /* Temporarily use OpenSerialPort which writes g_shCommPort; save/restore. */
+    hSave = g_shCommPort;
+    g_shCommPort = INVALID_HANDLE_VALUE;
+    sprintf(DevName, "\\\\.\\COM%d", iPortNo);
+    ok = OpenSerialPort(DevName, BaudRate, 8, NOPARITY, ONESTOPBIT);
+    if (!ok)
+    {
+        g_shCommPort = hSave;
+        return 0xff;
+    }
+    *phOut = g_shCommPort;
+    g_shCommPort = hSave; /* restore developer global; do not steal it */
+    return 0;
+}
+
+void SerClosePort(HANDLE hPort)
+{
+    if (hPort == NULL || hPort == INVALID_HANDLE_VALUE)
+        return;
+    if (t_hCommPort == hPort)
+    {
+        t_hCommPort = INVALID_HANDLE_VALUE;
+        t_bExternalPort = FALSE;
+    }
+    if (g_shCommPort == hPort)
+    {
+        g_shCommPort = INVALID_HANDLE_VALUE;
+        g_siCurPortNo = 0xff;
+    }
+    CloseHandle(hPort);
+}
+
+void SerBind(HANDLE hPort)
+{
+    t_hCommPort = hPort;
+    t_bExternalPort = TRUE;
+}
+
+void SerUnbind(void)
+{
+    t_hCommPort = INVALID_HANDLE_VALUE;
+    t_bExternalPort = FALSE;
+}
+
+BOOL SerIsBound(void)
+{
+    return (t_bExternalPort && t_hCommPort != INVALID_HANDLE_VALUE) ? TRUE : FALSE;
+}
+
+HANDLE SerGetActive(void)
+{
+    return ActiveComm();
+}
+
+BYTE SerWriteH(HANDLE hPort, BYTE *pszBuf, WORD SendCnt)
+{
+    HANDLE hSave = t_hCommPort;
+    BOOL bSave = t_bExternalPort;
+    BYTE byRet;
+    t_hCommPort = hPort;
+    t_bExternalPort = TRUE;
+    byRet = SerWrite(pszBuf, SendCnt);
+    t_hCommPort = hSave;
+    t_bExternalPort = bSave;
+    return byRet;
+}
+
+BYTE SerReadH(HANDLE hPort, BYTE *pszBuf, WORD RecvCnt, DWORD TimeOut)
+{
+    HANDLE hSave = t_hCommPort;
+    BOOL bSave = t_bExternalPort;
+    BYTE byRet;
+    t_hCommPort = hPort;
+    t_bExternalPort = TRUE;
+    byRet = SerRead(pszBuf, RecvCnt, TimeOut);
+    t_hCommPort = hSave;
+    t_bExternalPort = bSave;
+    return byRet;
 }

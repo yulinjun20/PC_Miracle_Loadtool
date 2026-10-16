@@ -22,24 +22,23 @@ public:
     ~CPageApplication();
 
     
-    BOOL IsThreadRun();        // ÊÇ·ñÓĞÏß³ÌÔÚÔËĞĞ
+    BOOL IsThreadRun();        // æ˜¯å¦æœ‰çº¿ç¨‹åœ¨è¿è¡Œ
 
     APPLICATION_LIST m_saAppInfo[MAX_APPLICATION_NUMBER];
 
-    CString m_strAppFilePath;  // ±£´æµ±Ç°Ñ¡ÔñµÄÓ¦ÓÃ³ÌĞò±£´æÂ·¾¶
+    CString m_strAppFilePath;  // ä¿å­˜å½“å‰é€‰æ‹©çš„åº”ç”¨ç¨‹åºä¿å­˜è·¯ï¿½?
     BOOL m_bStopDownloadFlag;
     BYTE m_abyVposType[16];
 
-    // µ±Ç°ÕıÔÚÏÂÔØµÄÓ¦ÓÃ³ÌĞò±àºÅ£¬-1±íÊ¾µ±Ç°Ã»ÓĞÏÂÔØ¹ıÓ¦ÓÃ³ÌĞò£¬0~24±íÊ¾
-    // µ±Ç°ÏÂÔØ¹ıÓ¦ÓÃ³ÌĞò
+    // å½“å‰æ­£åœ¨ä¸‹è½½çš„åº”ç”¨ç¨‹åºç¼–å·ï¼Œ-1è¡¨ç¤ºå½“å‰æ²¡æœ‰ä¸‹è½½è¿‡åº”ç”¨ç¨‹åºï¼Œ0~24è¡¨ç¤º
+    // å½“å‰ä¸‹è½½è¿‡åº”ç”¨ç¨‹ï¿½?
     int m_iCurrentAppNo;
 
-    void MyShowMessage(char *strMsg);  // ÔÚÏûÏ¢¾²Ì¬ÎÄ±¾´¦ÏÔÊ¾ÏûÏ¢
+    void MyShowMessage(char *strMsg);  // åœ¨æ¶ˆæ¯é™æ€æ–‡æœ¬å¤„æ˜¾ç¤ºæ¶ˆæ¯
 
-    void InsertOneAppFilePath();   // ²åÈëÒ»ÌõÓ¦ÓÃ³ÌĞòÂ·¾¶
+    void SaveAppFilePath();   // save last App path to config
 
-    // Êı×Ö×Ö·û´®¼ÓÒ»²Ù×÷
-    void StringAddOne(BYTE *pbyInData, BYTE *pbyOutData);
+    // æ•°å­—å­—ç¬¦ä¸²åŠ ä¸€æ“ä½œ
 
     void MyEnableWindows(BOOL bFlag);
 
@@ -66,25 +65,106 @@ public:
     int SetVposTime();
 
     int DownloadFile(char *strFileName, BYTE byFileType, BYTE byAppNo);
+
+    int DownloadOsStart();
+    int DownloadOsFile(char *strFileName);
+    void DownloadOsEnd();
+
+    /* DownloadProtocol_v1 helpers */
+    int  m_iDownloadMode;          /* DL_MODE_DEVELOPER / DL_MODE_FACTORY */
+    int  m_iProgressTotal;
+    int  m_iProgressDone;
+    CString m_strProgressCurrent;
+    CListCtrl m_listFactoryStatus;
+    BOOL m_bFactoryPagesHidden;
+
+
+    /* D15: separate Developer / Factory download selections */
+    struct DL_SEL_CFG {
+        BOOL bVOS, bApp, bSc, bWifi, bFont, bParam, bData, bLogo, bBale, bSync;
+        char szVos[256], szApp[256], szSc[256], szWifi[256], szFont[256];
+        char szParam[256], szData[256], szLogo[256], szBale[256];
+    };
+    DL_SEL_CFG m_cfgDev;
+    DL_SEL_CFG m_cfgFac;
+    void CaptureSelToCfg(DL_SEL_CFG &cfg);
+    void ApplyCfgToSel(const DL_SEL_CFG &cfg);
+    void LoadFactoryCfgFile();
+    void SaveFactoryCfgFile();
+    void ApplyModeUI(BOOL bFactory);
+    void ApplySyncDownloadMutex(BOOL bFromSync);
+    BOOL ValidateBeforeStart();
+    void UpdateTotalProgress(const char *szItem);
+    int  CountSelectedDownloadItems();
+    void AbortFileSession(BYTE byReason);
+    int  WaitDeviceAfterReboot();
+
+    /* Factory one-to-many (D12..) */
+    enum { FACTORY_SLOT_MAX = FACTORY_MAX_SLOTS };
+    struct FACTORY_SLOT {
+        volatile LONG busy;
+        int portNo;              /* 1-based COM number */
+        HANDLE hComm;
+        HANDLE hThread;
+        char sn[36];
+        char progress[40];
+        char status[80];
+        int listRow;
+        volatile LONG done;
+        int result;
+        int hsKind;              /* 0=none 1=L/A done 2=T/S done */
+        int osCheckType;         /* g_iCommCheckType after T/S */
+    };
+    FACTORY_SLOT m_factorySlots[FACTORY_SLOT_MAX];
+    CRITICAL_SECTION m_csFactory;
+    volatile LONG m_nFactoryActive;
+    BOOL m_bFactoryStopScan;
+    /* COMs finished Success; unlock only when port vanishes (unplug) or new Start. */
+    int  m_factoryDonePorts[256];
+    int  m_factoryDoneMiss[256]; /* consecutive enum misses; unlock after 3 */
+    int  m_nFactoryDonePorts;
+
+    void FactoryInitSlots();
+    void FactoryUpdateActiveLabel();
+    void FactoryUpdateListRow(int slot);
+    int  FactoryCountBusy();
+    int  FactoryAllocSlot(int portNo, HANDLE hComm, const char *sn);
+    void FactoryReleaseSlot(int slot);
+    int  FactoryRunDeviceSession(int slot); /* OS legacy + new protocol */
+    void FactoryPostStatus(int slot, const char *prog, const char *stat);
+    afx_msg LRESULT OnFactoryUiUpdate(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnFactoryUiEnable(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnFactoryScanMsg(WPARAM wParam, LPARAM lParam);
+    void FactoryPostEnable(BOOL bStartEnable);
+    void FactoryPostScanMsg(const char *msg);
+    BOOL FactoryPortIsDone(int portNo);
+    void FactoryMarkPortDone(int portNo);
+    void FactoryPruneDonePorts(const int *ports, int nPorts);
+
     
 // Dialog Data
     //{{AFX_DATA(CPageApplication)
     enum { IDD = IDD_DIALOG_APPLICATION };
-    CTreeCtrl    m_tcVposFileList;       // VPOSÉÏµÄÏÔÊ¾ĞÅÏ¢Ê÷
-    CComboBox    m_cbAppFilePath;        // Ó¦ÓÃ³ÌĞòÂ·¾¶×éºÏ¿ò
-    CString    m_strBaleFilePath;          // ´ò°üÎÄ¼ş´æ·ÅÂ·¾¶
-    CString    m_strFontFilePath;          // ×Ö¿âÎÄ¼ş´æ·ÅÂ·¾¶
-    CString    m_strParamFilePath;         // ²ÎÊıÎÄ¼ş´æ·ÅÂ·¾¶
-    CString    m_strVposSN;                // ĞòÁĞºÅ±à¼­¿Ø¼şÓ°ÉäµÄ×Ö·û´®
-    CString    m_strDataFilePath;          // Êı¾İÎÄ¼ş´æ·ÅÂ·¾¶
-    BOOL    m_bAppSelect;               // Ó¦ÓÃ³ÌĞòÑ¡ÖĞ±êÖ¾
-    BOOL    m_bBaleFileSelect;          // ´ò°üÎÄ¼şÑ¡ÖĞ±êÖ¾
-    BOOL    m_bCreateFileSystemSelect;  // ´´½¨ÎÄ¼şÏµÍ³Ñ¡ÖĞ±êÖ¾
-    BOOL    m_bFontFileSelect;          // ×Ö¿âÎÄ¼şÑ¡ÖĞ±êÖ¾
-    BOOL    m_bParamFileSelect;         // ²ÎÊıÎÄ¼şÑ¡ÖĞ±êÖ¾
-    BOOL    m_bDownloadSNSelect;        // ÏÂÔØĞòÁĞºÅÑ¡ÖĞ±êÖ¾
-    BOOL    m_bSetTimeSelect;           // ÉèÖÃÊ±¼äÑ¡ÖĞ±êÖ¾
-    BOOL    m_bDataFileSelect;          // Êı¾İÎÄ¼şÑ¡ÖĞ±êÖ¾
+    CTreeCtrl    m_tcVposFileList;       // VPOSä¸Šçš„æ˜¾ç¤ºä¿¡æ¯ï¿½?
+    CString    m_strBaleFilePath;          // æ‰“åŒ…æ–‡ä»¶å­˜æ”¾è·¯å¾„
+    CString    m_strFontFilePath;          // å­—åº“æ–‡ä»¶å­˜æ”¾è·¯å¾„
+    CString    m_strParamFilePath;         // å‚æ•°æ–‡ä»¶å­˜æ”¾è·¯å¾„
+    CString    m_strDataFilePath;          // æ•°æ®æ–‡ä»¶å­˜æ”¾è·¯å¾„
+    CString    m_strVosFilePath;           // OS file path
+    CString    m_strScAppFilePath;         // SC App path (placeholder)
+    CString    m_strWifiFilePath;          // WIFI path (placeholder)
+    CString    m_strLogoFilePath;          // Logo path (placeholder)
+    BOOL    m_bAppSelect;               // åº”ç”¨ç¨‹åºé€‰ä¸­æ ‡å¿—
+    BOOL    m_bBaleFileSelect;          // æ‰“åŒ…æ–‡ä»¶é€‰ä¸­æ ‡å¿—
+    BOOL    m_bCreateFileSystemSelect;  // åˆ›å»ºæ–‡ä»¶ç³»ç»Ÿé€‰ä¸­æ ‡å¿—
+    BOOL    m_bFontFileSelect;          // å­—åº“æ–‡ä»¶é€‰ä¸­æ ‡å¿—
+    BOOL    m_bParamFileSelect;         // å‚æ•°æ–‡ä»¶é€‰ä¸­æ ‡å¿—
+    BOOL    m_bSetTimeSelect;           // è®¾ç½®æ—¶é—´é€‰ä¸­æ ‡å¿—
+    BOOL    m_bDataFileSelect;
+    BOOL    m_bScAppSelect;
+    BOOL    m_bWifiSelect;
+    BOOL    m_bLogoSelect;
+    BOOL    m_bVOSSelect;               // OS file select          // æ•°æ®æ–‡ä»¶é€‰ä¸­æ ‡å¿—
 
     CFlatButton m_btnDownload;
     CFlatButton m_btnStop;
@@ -96,9 +176,12 @@ public:
     CFlatButton m_btnOpenBaleFile;
     CFlatButton m_btnOpenParamFile;
     CFlatButton m_btnOpenDataFile;
+    CFlatButton m_btnOpenVosFile;
+    CFlatButton m_btnOpenScAppFile;
+    CFlatButton m_btnOpenWifiFile;
+    CFlatButton m_btnOpenLogoFile;
     
     CFlatButton m_btnDeleteAppendFile;
-    CFlatButton m_btnShowAppInfo;
     //}}AFX_DATA
 
 
@@ -127,21 +210,32 @@ protected:
     afx_msg void OnButtonOpenBaleFile();
     afx_msg void OnButtonOpenParamFile();
     afx_msg void OnButtonOpenDataFile();
+    afx_msg void OnButtonOpenVosFile();
+    afx_msg void OnButtonOpenScAppFile();
+    afx_msg void OnButtonOpenWifiFile();
+    afx_msg void OnButtonOpenLogoFile();
+    afx_msg void OnCheckVosSelect();
+    afx_msg void OnChangeEditVosFilePath();
     afx_msg void OnCheckAppSelect();
     afx_msg void OnCheckBaleFile();
     afx_msg void OnCheckCreateFileSystem();
     afx_msg void OnCheckFontFile();
     afx_msg void OnCheckParamFile();
-    afx_msg void OnCheckSerialNumber();
     afx_msg void OnCheckSetTime();
     afx_msg void OnCheckDataFile();
+    afx_msg void OnCheckScAppFile();
+    afx_msg void OnCheckWifiFile();
+    afx_msg void OnCheckLogoFile();
+    afx_msg void OnRadioModeDeveloper();
+    afx_msg void OnRadioModeFactory();
     afx_msg void OnChangeEditBaleFilePath();
     afx_msg void OnChangeEditFontFilePath();
     afx_msg void OnChangeEditParamFilePath();
-    afx_msg void OnChangeEditVposSerialNumber();
-    afx_msg void OnEditchangeComboAppFilePath();
-    afx_msg void OnSelchangeComboAppFilePath();
+    afx_msg void OnChangeEditAppFilePath();
     afx_msg void OnChangeEditDataFilePath();
+    afx_msg void OnChangeEditScAppFilePath();
+    afx_msg void OnChangeEditWifiFilePath();
+    afx_msg void OnChangeEditLogoFilePath();
     afx_msg void OnDblclkTreeFileList(NMHDR* pNMHDR, LRESULT* pResult);
     //}}AFX_MSG
     DECLARE_MESSAGE_MAP()

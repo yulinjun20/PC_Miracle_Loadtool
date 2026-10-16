@@ -10,7 +10,6 @@
 
 
 #include "PageApplication.h"
-#include "PageFirmware.h"
 #include "PageCommSet.h"
 #include "PageFileBale.h"
 #include "PageEditParam.h"
@@ -25,7 +24,6 @@ class CLoadToolsDlg : public CDialog
 public:
 	CLoadToolsDlg(CWnd* pParent = NULL);	// standard constructor
 
-    CPageFirmware m_PageFirmware;
     CPageApplication m_PageApplication;
     CPageCommSet m_PageCommSet;
     CPageFileBale m_PageFileBale;
@@ -33,6 +31,8 @@ public:
 
 
     CPropertySheet m_sheet;
+    void ApplySheetMode(BOOL bFactory);  /* hide Comm set / Edit param */
+    BOOL m_bFactorySheetMode;
 // Dialog Data
 	//{{AFX_DATA(CLoadToolsDlg)
 	enum { IDD = IDD_LOADTOOLS_DIALOG };
