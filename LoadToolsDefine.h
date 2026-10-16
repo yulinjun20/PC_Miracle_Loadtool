@@ -29,7 +29,7 @@
 #define FILE_TYPE_WIFI           7
 #define FILE_TYPE_LOGO           8
 
-// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿?
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½?
 #define BALE_TASK_APPLICATION    0x01
 #define BALE_TASK_PARAM          0x02
 #define BALE_TASK_DATAM          0x03
@@ -68,6 +68,21 @@
 #define FILE_DL_PROTO_VER               1
 #define FILE_DL_CHUNK_MAX               4096
 #define FILE_DL_NAME_MAX                32
+
+/* End/Start status (aligned with device usb_file_dl ERR_*) */
+#define FILE_DL_ERR_OK                  0
+#define FILE_DL_ERR_UNSUPPORTED_PROTO   1
+#define FILE_DL_ERR_UNSUPPORTED_TYPE    2
+#define FILE_DL_ERR_NAME_INVALID        3
+#define FILE_DL_ERR_SIZE_EXCEED         4
+#define FILE_DL_ERR_NO_SPACE            5
+#define FILE_DL_ERR_BUSY                6
+#define FILE_DL_ERR_OFFSET              7
+#define FILE_DL_ERR_CHUNK_CRC           8
+#define FILE_DL_ERR_FILE_HASH           9
+#define FILE_DL_ERR_WRITE               10
+#define FILE_DL_ERR_ABORT               11
+#define FILE_DL_ERR_VERIFY_FAIL         12
 #define FACTORY_MAX_SLOTS               12
 #define OS_REBOOT_WAIT_MS               20000
 
@@ -140,7 +155,7 @@ struct APPLICATION_LIST
 
 #define COMM_RETRY_TIMES  3
 
-// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿?
+// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢ï¿½ï¿½ï¿½?
 
 #define MSG_CREATE_THREAD_FAILED          0
 #define MSG_OPEN_SERIAL_PORT_FAILED       1

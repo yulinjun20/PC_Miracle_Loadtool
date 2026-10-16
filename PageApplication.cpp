@@ -1469,11 +1469,17 @@ int CPageApplication::UsbHandshack()
         iRet = ReadUsbDevice(abyRecvBuff, 1, 20);
         if ((0==iRet) && (abyRecvBuff[0]=='A'))
         {
-            /* Optional SN CRC16 frame (protocol 10.5); drain so Start RSP is not confused. */
+            /* Optional SN CRC16 frame (protocol 10.5); drain leftover before Start. */
             {
                 BYTE abySn[128];
                 WORD wSnLen = 0;
-                (void)Crc16RecvPacket(abySn, &wSnLen, 80);
+                int k;
+                for (k = 0; k < 3; k++)
+                {
+                    if (0 != Crc16RecvPacket(abySn, &wSnLen, 200))
+                        break;
+                }
+                Sleep(50);
             }
             return 0;
         }
@@ -1535,13 +1541,19 @@ int CPageApplication::SerialHandshack()
             return 1;
         }
     }
-    /* Optional SN CRC16 frame (protocol 10.5); same as FactoryQuickHandshake.
-       Device may send it after 'A'; must consume or DownloadFile Start RSP
-       will read leftover frame (hs_ver=1 treated as status fail). */
+    /* Optional SN CRC16 frame (protocol 10.5); drain so Start RSP is not
+       confused with leftover SN (DATA[0]=hs_ver=1 looks like status fail). */
     {
         BYTE abySn[128];
         WORD wSnLen = 0;
-        (void)Crc16RecvPacket(abySn, &wSnLen, 80);
+        int k;
+        for (k = 0; k < 3; k++)
+        {
+            if (0 != Crc16RecvPacket(abySn, &wSnLen, 200))
+                break;
+            /* Keep draining until quiet; CMD may be 0x0000 (SN). */
+        }
+        Sleep(50); /* let device enter FileDl command loop before Start */
     }
     return 0;
 }
@@ -1797,6 +1809,29 @@ int CPageApplication::DownloadProcess()
       ?????     ??????    ???��??   ??????
   1?? ?????     2007-10-08   V1.0        ????
 ****************************************************************************/
+
+/* Map device FileDl End/Start status to UI text; optional reason from End RSP. */
+static const char *FileDlStatusText(unsigned st)
+{
+    switch (st)
+    {
+    case FILE_DL_ERR_OK: return "OK";
+    case FILE_DL_ERR_UNSUPPORTED_PROTO: return "unsupported proto";
+    case FILE_DL_ERR_UNSUPPORTED_TYPE: return "unsupported type";
+    case FILE_DL_ERR_NAME_INVALID: return "invalid name";
+    case FILE_DL_ERR_SIZE_EXCEED: return "size exceed";
+    case FILE_DL_ERR_NO_SPACE: return "no space";
+    case FILE_DL_ERR_BUSY: return "busy";
+    case FILE_DL_ERR_OFFSET: return "bad offset";
+    case FILE_DL_ERR_CHUNK_CRC: return "chunk CRC";
+    case FILE_DL_ERR_FILE_HASH: return "file hash/CRC";
+    case FILE_DL_ERR_WRITE: return "write failed";
+    case FILE_DL_ERR_ABORT: return "aborted";
+    case FILE_DL_ERR_VERIFY_FAIL: return "App verify failed";
+    default: return "device error";
+    }
+}
+
 int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
                                    BYTE byAppNo)
 {
@@ -1959,7 +1994,11 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
     }
     iSendLen = 16 + byNameLen;
 
-    UpdateTotalProgress(strMsg);
+    {
+        char szSt[80];
+        sprintf(szSt, "%s: sending Start...", strMsg);
+        MyShowMessage(szSt);
+    }
     iRet = Crc16SendPacket(abySend, (WORD)iSendLen, CMD_FILE_DL_START_REQ);
     if (0 != iRet)
     {
@@ -1967,28 +2006,49 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         MyShowMessage("Send failed!");
         return 6;
     }
-    iRet = Crc16RecvPacket(abyRecv, &wPacketLen, 3000);
-    /* wPacketLen = total frame (DATA_LEN+7); status at [5]; chunk_accept at [7..8]
-       Start RSP DATA is 10 bytes => total 17; min check 12 (status+ver+chunk). */
-    if (0 != iRet)
+    /* Recv Start RSP; skip leftover frames (e.g. SN CMD 0x0000) until 0xB211. */
     {
-        fclose(fp);
-        MyShowMessage("Start: no response / timeout!");
-        return 5;
+        int iTry;
+        WORD wRspCmd = 0;
+        iRet = -1;
+        for (iTry = 0; iTry < 8; iTry++)
+        {
+            iRet = Crc16RecvPacket(abyRecv, &wPacketLen, 3000);
+            if (0 != iRet)
+            {
+                fclose(fp);
+                MyShowMessage("Start: no response / timeout!");
+                return 15;
+            }
+            if (wPacketLen < 12)
+            {
+                continue;
+            }
+            wRspCmd = (WORD)(abyRecv[1] * 256 + abyRecv[2]);
+            if (wRspCmd == CMD_FILE_DL_START_RSP)
+            {
+                break;
+            }
+            /* Not Start RSP — drain and wait for the real one. */
+            iRet = -1;
+        }
+        if (0 != iRet || wRspCmd != CMD_FILE_DL_START_RSP)
+        {
+            fclose(fp);
+            MyShowMessage("Start: bad/missing 0xB211 response!");
+            return 15;
+        }
     }
-    if (wPacketLen < 12)
-    {
-        fclose(fp);
-        MyShowMessage("Start: bad response length!");
-        return 5;
-    }
+    /* status at [5]; chunk_accept at [7..8]. Protocol status on reject;
+       5=NO_SPACE; timeout uses 15. */
     if (0 != abyRecv[5])
     {
-        char szRj[80];
-        sprintf(szRj, "Start rejected! status=%u", (unsigned)abyRecv[5]);
+        char szRj[96];
+        unsigned st = (unsigned)abyRecv[5];
+        sprintf(szRj, "Start rejected: %s (code %u)", FileDlStatusText(st), st);
         fclose(fp);
         MyShowMessage(szRj);
-        return 5;
+        return (int)st;
     }
     wChunkAccept = (WORD)(abyRecv[7] * 256 + abyRecv[8]);
     if (0 == wChunkAccept || wChunkAccept > FILE_DL_CHUNK_MAX)
@@ -2079,11 +2139,46 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         return 6;
     }
     iRet = Crc16RecvPacket(abyRecv, &wPacketLen, 30000);
-    if ((0 != iRet) || (wPacketLen < 8) || (0 != abyRecv[5]))
+    if (0 != iRet)
     {
         fclose(fp);
-        MyShowMessage("End / verify failed!");
+        MyShowMessage("End: no response / timeout!");
+        return 15;
+    }
+    if (wPacketLen < 8)
+    {
+        fclose(fp);
+        MyShowMessage("End: short response!");
         return 5;
+    }
+    if (0 != abyRecv[5])
+    {
+        /* DATA: [5]=status [6]=reboot [7]=reason_len [8..]=reason (optional) */
+        char szEnd[160];
+        unsigned st = (unsigned)abyRecv[5];
+        const char *mapped = FileDlStatusText(st);
+        BYTE reasonLen = 0;
+        char reason[40];
+        reason[0] = 0;
+        /* total frame len = 7 + data_len; data_len>=3 means reason present */
+        if (wPacketLen >= 10)
+        {
+            reasonLen = abyRecv[7];
+            if (reasonLen > 32)
+                reasonLen = 32;
+            if (reasonLen > 0 && wPacketLen >= (WORD)(10 + reasonLen))
+            {
+                memcpy(reason, &abyRecv[8], reasonLen);
+                reason[reasonLen] = 0;
+            }
+        }
+        if (reason[0])
+            sprintf(szEnd, "Fail: %s (%s)", mapped, reason);
+        else
+            sprintf(szEnd, "Fail: %s (code %u)", mapped, st);
+        fclose(fp);
+        MyShowMessage(szEnd);
+        return (int)st;
     }
     byReboot = 0;
     if (wPacketLen >= 9)
@@ -2839,10 +2934,21 @@ int CPageApplication::DownloadOsFile(char *strFileName)
         iReadLen = fread(&abyTemp[5], 1, wPacketLen, fp);
         if (iReadLen > 0)
         {
-            abyTemp[0] = 0;
-            abyTemp[1] = (BYTE)((dwCurrentLen/65536)%256);
-            abyTemp[2] = (BYTE)((dwCurrentLen%65536)/256);
-            abyTemp[3] = (BYTE)(dwCurrentLen%256);
+            if (0 == dwCurrentLen)
+            {
+                /* First chunk: total size in [0..3] so device can show OS N%. */
+                abyTemp[0] = (BYTE)(((DWORD)iFileLen >> 24) & 0xff);
+                abyTemp[1] = (BYTE)(((DWORD)iFileLen >> 16) & 0xff);
+                abyTemp[2] = (BYTE)(((DWORD)iFileLen >> 8) & 0xff);
+                abyTemp[3] = (BYTE)((DWORD)iFileLen & 0xff);
+            }
+            else
+            {
+                abyTemp[0] = 0;
+                abyTemp[1] = (BYTE)((dwCurrentLen/65536)%256);
+                abyTemp[2] = (BYTE)((dwCurrentLen%65536)/256);
+                abyTemp[3] = (BYTE)(dwCurrentLen%256);
+            }
             /* Device MyDownload rejects compress (flag!=0). Always send raw. */
             abyTemp[4] = 0;  // data no zip
             iSendPacketLen = iReadLen + 5;
@@ -3681,8 +3787,17 @@ static int FactoryQuickHandshakeLA(HANDLE h, char *snOut, int snMax, volatile BO
         iRet = SerRead(&b, 1, 20);
         if ((0 == iRet) && (b == 'A'))
         {
-            /* Optional SN CRC16 frame (10.5); short wait */
-            iRet = Crc16RecvPacket(aby, &wLen, 80);
+            /* Optional SN CRC16 frame (10.5); drain leftovers */
+            {
+                int k;
+                for (k = 0; k < 3; k++)
+                {
+                    iRet = Crc16RecvPacket(aby, &wLen, 200);
+                    if (0 != iRet)
+                        break;
+                }
+            }
+            Sleep(30);
             if ((0 == iRet) && (wLen >= 8))
             {
                 /* DATA at [5]: hs_ver, hs_status, sn_len, sn... */
