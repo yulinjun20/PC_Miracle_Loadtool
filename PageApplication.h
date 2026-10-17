@@ -93,6 +93,7 @@ public:
     void SaveFactoryCfgFile();
     void ApplyModeUI(BOOL bFactory);
     void ApplySyncDownloadMutex(BOOL bFromSync);
+    void ApplyOsDownloadMutex(BOOL bFromOs);
     BOOL ValidateBeforeStart();
     void UpdateTotalProgress(const char *szItem);
     void SetDownloadProgress(int pct);

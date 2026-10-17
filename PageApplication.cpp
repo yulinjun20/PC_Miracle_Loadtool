@@ -1222,6 +1222,7 @@ void CPageApplication::OnCheckAppSelect()
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bAppSelect)
@@ -1248,6 +1249,7 @@ void CPageApplication::OnCheckBaleFile()
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         m_bAppSelect = FALSE;
@@ -1293,6 +1295,7 @@ void CPageApplication::OnCheckFontFile()
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bFontFileSelect)
@@ -1319,6 +1322,7 @@ void CPageApplication::OnCheckParamFile()
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bParamFileSelect)
@@ -1764,8 +1768,8 @@ int CPageApplication::DownloadProcess()
         || m_bDataFileSelect
         || m_bPubKeyL1Select || m_bPubKeyL2Select || m_bPubKeyL3Select)
     {
-        /* Transfer order (receive). Install order on device: OS->Font->Logo->Param->Data->SC->WIFI->App (D53).
-           OS already handled in ThreadDownload via legacy path.
+        /* Transfer order. Device installs each file on End (PC waits End RSP).
+           OS (legacy) installed last on Finish (reboot). SC before App so SC installs first.
            Bale = PC unpack then per-item DownloadFile (D54). Continue-on-fail (D68). */
         if (m_bFontFileSelect)
         {
@@ -2243,26 +2247,33 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         dwOffset += (DWORD)iReadLen;
     }
 
-    /* End 0xB214 */
-    MyShowMessage("Saving file...");
-    abySend[0] = (BYTE)(((DWORD)iFileLen >> 24) & 0xff);
-    abySend[1] = (BYTE)(((DWORD)iFileLen >> 16) & 0xff);
-    abySend[2] = (BYTE)(((DWORD)iFileLen >> 8) & 0xff);
-    abySend[3] = (BYTE)((DWORD)iFileLen & 0xff);
-    memcpy(&abySend[4], abyHash, 4);
-    iRet = Crc16SendPacket(abySend, 8, CMD_FILE_DL_END_REQ);
-    if (0 != iRet)
+    /* End 0xB214: device verifies then installs this file before End RSP. */
     {
-        fclose(fp);
-        MyShowMessage("Send failed!");
-        return 6;
-    }
-    iRet = Crc16RecvPacket(abyRecv, &wPacketLen, 30000);
-    if (0 != iRet)
-    {
-        fclose(fp);
-        MyShowMessage("End: no response / timeout!");
-        return 15;
+        DWORD dwEndTimeout = 60000; /* default 60s */
+        if (FILE_TYPE_SC_APP == byFileType || FILE_TYPE_WIFI == byFileType)
+            dwEndTimeout = 300000; /* MH2101 / ESP flash can take minutes */
+        else if (FILE_TYPE_APPLICATION == byFileType)
+            dwEndTimeout = 180000;
+        MyShowMessage("Verify + installing...");
+        abySend[0] = (BYTE)(((DWORD)iFileLen >> 24) & 0xff);
+        abySend[1] = (BYTE)(((DWORD)iFileLen >> 16) & 0xff);
+        abySend[2] = (BYTE)(((DWORD)iFileLen >> 8) & 0xff);
+        abySend[3] = (BYTE)((DWORD)iFileLen & 0xff);
+        memcpy(&abySend[4], abyHash, 4);
+        iRet = Crc16SendPacket(abySend, 8, CMD_FILE_DL_END_REQ);
+        if (0 != iRet)
+        {
+            fclose(fp);
+            MyShowMessage("Send failed!");
+            return 6;
+        }
+        iRet = Crc16RecvPacket(abyRecv, &wPacketLen, dwEndTimeout);
+        if (0 != iRet)
+        {
+            fclose(fp);
+            MyShowMessage("End/Install: no response / timeout!");
+            return 15;
+        }
     }
     if (wPacketLen < 8)
     {
@@ -2406,6 +2417,7 @@ void CPageApplication::OnCheckDataFile()
     // TODO: Add your control notification handler code here
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bDataFileSelect)
@@ -2796,6 +2808,7 @@ void CPageApplication::OnCheckVosSelect()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(TRUE);
 }
 
 void CPageApplication::OnChangeEditVosFilePath()
@@ -2822,6 +2835,7 @@ void CPageApplication::OnCheckScAppFile()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bScAppSelect)
@@ -2857,6 +2871,7 @@ void CPageApplication::OnCheckWifiFile()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bWifiSelect)
@@ -2892,6 +2907,7 @@ void CPageApplication::OnCheckLogoFile()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
     if (m_bBaleFileSelect)
     {
         if (m_bLogoSelect)
@@ -2949,18 +2965,21 @@ void CPageApplication::OnCheckPubKeyL1()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
 }
 
 void CPageApplication::OnCheckPubKeyL2()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
 }
 
 void CPageApplication::OnCheckPubKeyL3()
 {
     UpdateData(TRUE);
     ApplySyncDownloadMutex(FALSE);
+    ApplyOsDownloadMutex(FALSE);
 }
 
 void CPageApplication::OnChangeEditPubKeyL1Path()
@@ -3390,6 +3409,41 @@ int CPageApplication::WaitDeviceAfterReboot()
     return 1;
 }
 
+void CPageApplication::ApplyOsDownloadMutex(BOOL bFromOs)
+{
+    /* OS mutually exclusive with all other file types (Developer + Factory). */
+    if (bFromOs)
+    {
+        if (m_bVOSSelect)
+        {
+            m_bAppSelect = FALSE;
+            m_bScAppSelect = FALSE;
+            m_bWifiSelect = FALSE;
+            m_bFontFileSelect = FALSE;
+            m_bParamFileSelect = FALSE;
+            m_bDataFileSelect = FALSE;
+            m_bLogoSelect = FALSE;
+            m_bBaleFileSelect = FALSE;
+            m_bPubKeyL1Select = FALSE;
+            m_bPubKeyL2Select = FALSE;
+            m_bPubKeyL3Select = FALSE;
+            m_bCreateFileSystemSelect = FALSE;
+            UpdateData(FALSE);
+        }
+        return;
+    }
+
+    /* Non-OS checkbox toggled: if any non-OS selected, clear OS. */
+    if (m_bVOSSelect &&
+        (m_bAppSelect || m_bScAppSelect || m_bWifiSelect || m_bFontFileSelect
+         || m_bParamFileSelect || m_bDataFileSelect || m_bLogoSelect || m_bBaleFileSelect
+         || m_bPubKeyL1Select || m_bPubKeyL2Select || m_bPubKeyL3Select))
+    {
+        m_bVOSSelect = FALSE;
+        UpdateData(FALSE);
+    }
+}
+
 void CPageApplication::ApplySyncDownloadMutex(BOOL bFromSync)
 {
     /* Sync time UI removed; keep stub so existing call sites still link. */
@@ -3400,6 +3454,16 @@ void CPageApplication::ApplySyncDownloadMutex(BOOL bFromSync)
 BOOL CPageApplication::ValidateBeforeStart()
 {
     UpdateData(TRUE);
+
+    /* OS cannot combine with other download types (Developer + Factory). */
+    if (m_bVOSSelect &&
+        (m_bAppSelect || m_bScAppSelect || m_bWifiSelect || m_bFontFileSelect
+         || m_bParamFileSelect || m_bDataFileSelect || m_bLogoSelect || m_bBaleFileSelect
+         || m_bPubKeyL1Select || m_bPubKeyL2Select || m_bPubKeyL3Select))
+    {
+        MyShowMessage("OS cannot be downloaded together with other files!");
+        return FALSE;
+    }
 
     if (FALSE == m_bVOSSelect && FALSE == m_bAppSelect && FALSE == m_bScAppSelect
         && FALSE == m_bWifiSelect && FALSE == m_bFontFileSelect
