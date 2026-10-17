@@ -28,6 +28,9 @@
 #define FILE_TYPE_SC_APP         6
 #define FILE_TYPE_WIFI           7
 #define FILE_TYPE_LOGO           8
+#define FILE_TYPE_PUBKEY_L1      9   /* SignTool X.509 PEM L1 */
+#define FILE_TYPE_PUBKEY_L2      10  /* SignTool X.509 PEM L2 */
+#define FILE_TYPE_PUBKEY_L3      11  /* SignTool X.509 PEM L3 */
 
 // �����������?
 #define BALE_TASK_APPLICATION    0x01

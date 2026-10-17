@@ -43,7 +43,7 @@ void UpdateConfigure(void)
         = g_pCLoadToolsDlg->m_PageCommSet.m_iSerialPortBauds;
 
     g_sConfigreInfo.m_iSerialPortNumber
-        = g_pCLoadToolsDlg->m_PageCommSet.m_iSerialPortNumber;
+        = g_pCLoadToolsDlg->m_PageCommSet.GetSelectedComPortNumber();
 
 
 
@@ -274,20 +274,10 @@ BOOL CLoadToolsDlg::OnInitDialog()
     m_sheet.AddPage(&m_PageFileBale);
     m_sheet.AddPage(&m_PageEditParam);
 
-        // Load Miracle logo into top static control
-    CStatic* pLogo = (CStatic*)GetDlgItem(IDC_STATIC_MIRACLE_LOGO);
-    if (pLogo != NULL)
-    {
-        if (m_bmpLogo.LoadBitmap(IDB_MIRACLE_LOGO))
-        {
-            pLogo->SetBitmap((HBITMAP)m_bmpLogo.GetSafeHandle());
-        }
-    }
+        m_sheet.Create(this, WS_CHILD | WS_VISIBLE, WS_EX_CONTROLPARENT);
 
-    m_sheet.Create(this, WS_CHILD | WS_VISIBLE, WS_EX_CONTROLPARENT);
-
-    // Leave a strip at top for the Miracle logo (~53 px, left-aligned)
-    m_sheet.SetWindowPos(NULL, -10, 60, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+    // Logo banner removed; tabs sit near top of client area
+    m_sheet.SetWindowPos(NULL, -10, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
     
     g_pCLoadToolsDlg = this; // ���浱ǰ����ָ��
 

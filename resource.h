@@ -160,6 +160,19 @@
 #define IDC_LIST_FACTORY_STATUS         1129
 #define IDC_STATIC_MODE_LABEL           1130
 #define IDC_STATIC_FACTORY_ACTIVE       1131
+#define IDC_CHECK_PUBKEY_L1             1132
+#define IDC_EDIT_PUBKEY_L1_PATH          1133
+#define IDC_BUTTON_OPEN_PUBKEY_L1       1134
+#define IDC_CHECK_PUBKEY_L2             1135
+#define IDC_EDIT_PUBKEY_L2_PATH          1136
+#define IDC_BUTTON_OPEN_PUBKEY_L2       1137
+#define IDC_CHECK_PUBKEY_L3             1138
+#define IDC_EDIT_PUBKEY_L3_PATH          1139
+#define IDC_BUTTON_OPEN_PUBKEY_L3       1140
+#define IDC_STATIC_BOTTOM_SEP          1141
+#define IDC_RADIO_PACKET_512           1142
+#define IDC_RADIO_PACKET_4096          1143
+#define IDC_BUTTON_COM_REFRESH         1144
 
 
 // Next default values for new objects
@@ -168,7 +181,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        172
 #define _APS_NEXT_COMMAND_VALUE         32771
-#define _APS_NEXT_CONTROL_VALUE         1127
+#define _APS_NEXT_CONTROL_VALUE         1145
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

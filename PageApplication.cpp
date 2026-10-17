@@ -94,6 +94,12 @@ CPageApplication::CPageApplication() : CPropertyPage(CPageApplication::IDD)
     m_bScAppSelect = FALSE;
     m_bWifiSelect = FALSE;
     m_bLogoSelect = FALSE;
+    m_bPubKeyL1Select = FALSE;
+    m_bPubKeyL2Select = FALSE;
+    m_bPubKeyL3Select = FALSE;
+    m_strPubKeyL1Path = _T("");
+    m_strPubKeyL2Path = _T("");
+    m_strPubKeyL3Path = _T("");
     m_bVOSSelect = FALSE;
     //}}AFX_DATA_INIT
 }
@@ -116,7 +122,6 @@ void CPageApplication::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_CHECK_BALE_FILE, m_bBaleFileSelect);
     DDX_Check(pDX, IDC_CHECK_FONT_FILE, m_bFontFileSelect);
     DDX_Check(pDX, IDC_CHECK_PARAM_FILE, m_bParamFileSelect);
-    DDX_Check(pDX, IDC_CHECK_SET_TIME, m_bSetTimeSelect);
     DDX_Text(pDX, IDC_EDIT_DATA_FILE_PATH, m_strDataFilePath);
     DDX_Check(pDX, IDC_CHECK_DATA_FILE, m_bDataFileSelect);
     DDX_Text(pDX, IDC_EDIT_VOS_FILE_PATH, m_strVosFilePath);
@@ -127,6 +132,12 @@ void CPageApplication::DoDataExchange(CDataExchange* pDX)
     DDX_Check(pDX, IDC_CHECK_WIFI_FILE, m_bWifiSelect);
     DDX_Text(pDX, IDC_EDIT_LOGO_FILE_PATH, m_strLogoFilePath);
     DDX_Check(pDX, IDC_CHECK_LOGO_FILE, m_bLogoSelect);
+    DDX_Text(pDX, IDC_EDIT_PUBKEY_L1_PATH, m_strPubKeyL1Path);
+    DDX_Check(pDX, IDC_CHECK_PUBKEY_L1, m_bPubKeyL1Select);
+    DDX_Text(pDX, IDC_EDIT_PUBKEY_L2_PATH, m_strPubKeyL2Path);
+    DDX_Check(pDX, IDC_CHECK_PUBKEY_L2, m_bPubKeyL2Select);
+    DDX_Text(pDX, IDC_EDIT_PUBKEY_L3_PATH, m_strPubKeyL3Path);
+    DDX_Check(pDX, IDC_CHECK_PUBKEY_L3, m_bPubKeyL3Select);
 
     DDX_Control(pDX, IDC_BUTTON_BEGIN_DOWNLOAD_APP, m_btnDownload);
     DDX_Control(pDX, IDC_BUTTON_STOP_DOWNLOAD_APP, m_btnStop);
@@ -143,6 +154,9 @@ void CPageApplication::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_BUTTON_OPEN_SC_APP_FILE, m_btnOpenScAppFile);
     DDX_Control(pDX, IDC_BUTTON_OPEN_WIFI_FILE, m_btnOpenWifiFile);
     DDX_Control(pDX, IDC_BUTTON_OPEN_LOGO_FILE, m_btnOpenLogoFile);
+    DDX_Control(pDX, IDC_BUTTON_OPEN_PUBKEY_L1, m_btnOpenPubKeyL1);
+    DDX_Control(pDX, IDC_BUTTON_OPEN_PUBKEY_L2, m_btnOpenPubKeyL2);
+    DDX_Control(pDX, IDC_BUTTON_OPEN_PUBKEY_L3, m_btnOpenPubKeyL3);
     DDX_Control(pDX, IDC_LIST_FACTORY_STATUS, m_listFactoryStatus);
     //}}AFX_DATA_MAP
 }
@@ -164,16 +178,21 @@ BEGIN_MESSAGE_MAP(CPageApplication, CPropertyPage)
     ON_BN_CLICKED(IDC_BUTTON_OPEN_SC_APP_FILE, OnButtonOpenScAppFile)
     ON_BN_CLICKED(IDC_BUTTON_OPEN_WIFI_FILE, OnButtonOpenWifiFile)
     ON_BN_CLICKED(IDC_BUTTON_OPEN_LOGO_FILE, OnButtonOpenLogoFile)
+    ON_BN_CLICKED(IDC_BUTTON_OPEN_PUBKEY_L1, OnButtonOpenPubKeyL1)
+    ON_BN_CLICKED(IDC_BUTTON_OPEN_PUBKEY_L2, OnButtonOpenPubKeyL2)
+    ON_BN_CLICKED(IDC_BUTTON_OPEN_PUBKEY_L3, OnButtonOpenPubKeyL3)
     ON_BN_CLICKED(IDC_CHECK_APP_SELECT, OnCheckAppSelect)
     ON_BN_CLICKED(IDC_CHECK_BALE_FILE, OnCheckBaleFile)
     ON_BN_CLICKED(IDC_CHECK_CREATE_FILE_SYSTEM, OnCheckCreateFileSystem)
     ON_BN_CLICKED(IDC_CHECK_FONT_FILE, OnCheckFontFile)
     ON_BN_CLICKED(IDC_CHECK_PARAM_FILE, OnCheckParamFile)
-    ON_BN_CLICKED(IDC_CHECK_SET_TIME, OnCheckSetTime)
     ON_BN_CLICKED(IDC_CHECK_DATA_FILE, OnCheckDataFile)
     ON_BN_CLICKED(IDC_CHECK_SC_APP_FILE, OnCheckScAppFile)
     ON_BN_CLICKED(IDC_CHECK_WIFI_FILE, OnCheckWifiFile)
     ON_BN_CLICKED(IDC_CHECK_LOGO_FILE, OnCheckLogoFile)
+    ON_BN_CLICKED(IDC_CHECK_PUBKEY_L1, OnCheckPubKeyL1)
+    ON_BN_CLICKED(IDC_CHECK_PUBKEY_L2, OnCheckPubKeyL2)
+    ON_BN_CLICKED(IDC_CHECK_PUBKEY_L3, OnCheckPubKeyL3)
     ON_BN_CLICKED(IDC_RADIO_MODE_DEVELOPER, OnRadioModeDeveloper)
     ON_BN_CLICKED(IDC_RADIO_MODE_FACTORY, OnRadioModeFactory)
     ON_MESSAGE(WM_FACTORY_UI_UPDATE, OnFactoryUiUpdate)
@@ -188,6 +207,9 @@ BEGIN_MESSAGE_MAP(CPageApplication, CPropertyPage)
     ON_EN_CHANGE(IDC_EDIT_SC_APP_FILE_PATH, OnChangeEditScAppFilePath)
     ON_EN_CHANGE(IDC_EDIT_WIFI_FILE_PATH, OnChangeEditWifiFilePath)
     ON_EN_CHANGE(IDC_EDIT_LOGO_FILE_PATH, OnChangeEditLogoFilePath)
+    ON_EN_CHANGE(IDC_EDIT_PUBKEY_L1_PATH, OnChangeEditPubKeyL1Path)
+    ON_EN_CHANGE(IDC_EDIT_PUBKEY_L2_PATH, OnChangeEditPubKeyL2Path)
+    ON_EN_CHANGE(IDC_EDIT_PUBKEY_L3_PATH, OnChangeEditPubKeyL3Path)
     ON_EN_CHANGE(IDC_EDIT_VOS_FILE_PATH, OnChangeEditVosFilePath)
     ON_NOTIFY(NM_DBLCLK, IDC_TREE_FILE_LIST, OnDblclkTreeFileList)
     //}}AFX_MSG_MAP
@@ -302,7 +324,6 @@ BOOL CPageApplication::OnInitDialog()
     UpdateData(FALSE);
 
     GetDlgItem(IDC_BUTTON_STOP_DOWNLOAD_APP)->EnableWindow(FALSE);
-    GetDlgItem(IDC_CHECK_SET_TIME)->EnableWindow(TRUE);
 
     m_iDownloadMode = DL_MODE_DEVELOPER;
     m_iProgressTotal = 0;
@@ -394,6 +415,15 @@ BOOL CPageApplication::OnInitDialog()
     m_btnOpenLogoFile.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
     m_btnOpenLogoFile.SetShowText(TRUE);
     m_btnOpenLogoFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+    m_btnOpenPubKeyL1.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
+    m_btnOpenPubKeyL1.SetShowText(TRUE);
+    m_btnOpenPubKeyL1.SetActiveBgColor(RGB(200,200,200), FALSE);
+    m_btnOpenPubKeyL2.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
+    m_btnOpenPubKeyL2.SetShowText(TRUE);
+    m_btnOpenPubKeyL2.SetActiveBgColor(RGB(200,200,200), FALSE);
+    m_btnOpenPubKeyL3.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
+    m_btnOpenPubKeyL3.SetShowText(TRUE);
+    m_btnOpenPubKeyL3.SetActiveBgColor(RGB(200,200,200), FALSE);
     
     m_btnDeleteAppendFile.SetIcon(IDI_ICON_DELETE2, NULL, 35, 32);
     m_btnDeleteAppendFile.SetShowText(TRUE);
@@ -894,7 +924,9 @@ int ThreadDownload(void *pTemp)
         || pPage->m_bDataFileSelect
         || pPage->m_bLogoSelect
         || pPage->m_bBaleFileSelect
-        || pPage->m_bSetTimeSelect);
+        || pPage->m_bPubKeyL1Select
+        || pPage->m_bPubKeyL2Select
+        || pPage->m_bPubKeyL3Select);
 
     /* OS uses firmware protocol (serial + CmdSendPacket); then App-side session. */
     if (bOs)
@@ -952,7 +984,8 @@ int ThreadDownload(void *pTemp)
     {
         if (0 == iLastError)
         {
-            pPage->MyShowMessage("Download success!");
+            pPage->SetDownloadProgress(100);
+			pPage->MyShowMessage("Download success!");
         }
         else
         {
@@ -1389,6 +1422,10 @@ void CPageApplication::OnChangeEditParamFilePath()
 ****************************************************************************/
 void CPageApplication::MyShowMessage(char *strMsg)
 {
+    if (!GetSafeHwnd() || NULL == strMsg)
+    {
+        return;
+    }
     SetDlgItemText(IDC_STATIC_PAGE_APP_MESSAGE, strMsg);
 }
 
@@ -1412,8 +1449,24 @@ void CPageApplication::OnChangeEditAppFilePath()
 ****************************************************************************/
 void CPageApplication::MyEnableWindows(BOOL bFlag)
 {
-    GetDlgItem(IDC_BUTTON_BEGIN_DOWNLOAD_APP)->EnableWindow(bFlag);
-    GetDlgItem(IDC_BUTTON_STOP_DOWNLOAD_APP)->EnableWindow(!bFlag);
+    if (!GetSafeHwnd())
+    {
+        return;
+    }
+    if (m_btnDownload.GetSafeHwnd())
+        m_btnDownload.EnableWindow(bFlag);
+    else
+    {
+        CWnd *p = GetDlgItem(IDC_BUTTON_BEGIN_DOWNLOAD_APP);
+        if (p) p->EnableWindow(bFlag);
+    }
+    if (m_btnStop.GetSafeHwnd())
+        m_btnStop.EnableWindow(!bFlag);
+    else
+    {
+        CWnd *p = GetDlgItem(IDC_BUTTON_STOP_DOWNLOAD_APP);
+        if (p) p->EnableWindow(!bFlag);
+    }
 }
 
 
@@ -1502,7 +1555,7 @@ int CPageApplication::SerialHandshack()
     /* Use UI-selected baud; skip open when factory already bound the port. */
     if (!SerIsBound())
     {
-        if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1,
+        if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber,
             g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
         {
             G_MyShowMessage(MSG_OPEN_SERIAL_PORT_FAILED);
@@ -1702,25 +1755,14 @@ int CPageApplication::DownloadProcess()
     m_bCreateFileSystemSelect = FALSE;
     m_iProgressTotal = CountSelectedDownloadItems();
     m_iProgressDone = 0;
-
-    /* Sync-only path (mutually exclusive with downloads). */
-    if (m_bSetTimeSelect && 0 == CountSelectedDownloadItems())
-    {
-        iRet = SetVposTime();
-        if (0 != iRet)
-        {
-            MyShowMessage("Sync time failed!");
-            return iRet;
-        }
-        MyShowMessage("Sync time success!");
-        return 0;
-    }
+    SetDownloadProgress(0);
 
     if (   m_bBaleFileSelect
         || m_bFontFileSelect
         || m_bParamFileSelect  || m_bAppSelect
         || m_bScAppSelect || m_bWifiSelect || m_bLogoSelect
-        || m_bDataFileSelect)
+        || m_bDataFileSelect
+        || m_bPubKeyL1Select || m_bPubKeyL2Select || m_bPubKeyL3Select)
     {
         /* Transfer order (receive). Install order on device: OS->Font->Logo->Param->Data->SC->WIFI->App (D53).
            OS already handled in ThreadDownload via legacy path.
@@ -1759,6 +1801,37 @@ int CPageApplication::DownloadProcess()
         if (m_bWifiSelect)
         {
             i = DownloadFile(m_strWifiFilePath.GetBuffer(0), FILE_TYPE_WIFI, 0);
+            m_iProgressDone++;
+            if (0 != i) iLastError = i;
+        }
+        /* PubKey order fixed: L1 -> L2 -> L3 (L2/L3 need parent on device). */
+        if (m_bPubKeyL1Select)
+        {
+            {
+                char *pKeyPath = m_strPubKeyL1Path.GetBuffer(0);
+                i = DownloadFile(pKeyPath, FILE_TYPE_PUBKEY_L1, 0);
+                m_strPubKeyL1Path.ReleaseBuffer();
+            }
+            m_iProgressDone++;
+            if (0 != i) iLastError = i;
+        }
+        if (m_bPubKeyL2Select)
+        {
+            {
+                char *pKeyPath = m_strPubKeyL2Path.GetBuffer(0);
+                i = DownloadFile(pKeyPath, FILE_TYPE_PUBKEY_L2, 0);
+                m_strPubKeyL2Path.ReleaseBuffer();
+            }
+            m_iProgressDone++;
+            if (0 != i) iLastError = i;
+        }
+        if (m_bPubKeyL3Select)
+        {
+            {
+                char *pKeyPath = m_strPubKeyL3Path.GetBuffer(0);
+                i = DownloadFile(pKeyPath, FILE_TYPE_PUBKEY_L3, 0);
+                m_strPubKeyL3Path.ReleaseBuffer();
+            }
             m_iProgressDone++;
             if (0 != i) iLastError = i;
         }
@@ -1827,7 +1900,7 @@ static const char *FileDlStatusText(unsigned st)
     case FILE_DL_ERR_FILE_HASH: return "file hash/CRC";
     case FILE_DL_ERR_WRITE: return "write failed";
     case FILE_DL_ERR_ABORT: return "aborted";
-    case FILE_DL_ERR_VERIFY_FAIL: return "App verify failed";
+    case FILE_DL_ERR_VERIFY_FAIL: return "verify failed";
     default: return "device error";
     }
 }
@@ -1928,6 +2001,33 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
     case FILE_TYPE_LOGO:
         strcpy(strMsg, "Logo");
         break;
+    case FILE_TYPE_PUBKEY_L1:
+        if (iFileLen > 8192 || iFileLen < 64)
+        {
+            MyShowMessage("L1 PubKey PEM size error!");
+            fclose(fp);
+            return 1;
+        }
+        strcpy(strMsg, "L1 PubKey");
+        break;
+    case FILE_TYPE_PUBKEY_L2:
+        if (iFileLen > 8192 || iFileLen < 64)
+        {
+            MyShowMessage("L2 PubKey PEM size error!");
+            fclose(fp);
+            return 1;
+        }
+        strcpy(strMsg, "L2 PubKey");
+        break;
+    case FILE_TYPE_PUBKEY_L3:
+        if (iFileLen > 8192 || iFileLen < 64)
+        {
+            MyShowMessage("L3 PubKey PEM size error!");
+            fclose(fp);
+            return 1;
+        }
+        strcpy(strMsg, "L3 PubKey");
+        break;
     default:
         fclose(fp);
         MyShowMessage("File type error!");
@@ -1985,9 +2085,16 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
     abySend[6] = (BYTE)(((DWORD)iFileLen >> 8) & 0xff);
     abySend[7] = (BYTE)((DWORD)iFileLen & 0xff);
     memcpy(&abySend[8], abyHash, 4);
-    /* reserved 12..13 = 0 */
-    abySend[14] = (BYTE)((FILE_DL_CHUNK_MAX >> 8) & 0xff);
-    abySend[15] = (BYTE)(FILE_DL_CHUNK_MAX & 0xff);
+    /* reserved 12..13 = 0; advertise preferred packet size from Comm set */
+    {
+        DWORD dwPreferChunk = GetFileDlChunkPrefer();
+        if (dwPreferChunk > FILE_DL_CHUNK_MAX)
+        {
+            dwPreferChunk = FILE_DL_CHUNK_MAX;
+        }
+        abySend[14] = (BYTE)((dwPreferChunk >> 8) & 0xff);
+        abySend[15] = (BYTE)(dwPreferChunk & 0xff);
+    }
     if (byNameLen > 0)
     {
         memcpy(&abySend[16], szBaseName, byNameLen);
@@ -2051,9 +2158,20 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         return (int)st;
     }
     wChunkAccept = (WORD)(abyRecv[7] * 256 + abyRecv[8]);
-    if (0 == wChunkAccept || wChunkAccept > FILE_DL_CHUNK_MAX)
     {
-        wChunkAccept = FILE_DL_CHUNK_MAX;
+        DWORD dwPreferChunk = GetFileDlChunkPrefer();
+        if (dwPreferChunk > FILE_DL_CHUNK_MAX)
+        {
+            dwPreferChunk = FILE_DL_CHUNK_MAX;
+        }
+        if (0 == wChunkAccept || wChunkAccept > FILE_DL_CHUNK_MAX)
+        {
+            wChunkAccept = (WORD)dwPreferChunk;
+        }
+        if (wChunkAccept > (WORD)dwPreferChunk)
+        {
+            wChunkAccept = (WORD)dwPreferChunk;
+        }
     }
     dwChunkMax = wChunkAccept;
 
@@ -2075,6 +2193,7 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
             sprintf(szCur, "%s %d%% (%d/%d)", strMsg, pctFile,
                 m_iProgressDone, m_iProgressTotal);
             MyShowMessage(szCur);
+            SetDownloadProgress(pctFile);
         }
         wPacketLen = (WORD)dwChunkMax;
         if ((dwOffset + dwChunkMax) > (DWORD)iFileLen)
@@ -2209,9 +2328,8 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
 
 void CPageApplication::OnCheckSetTime() 
 {
-    // TODO: Add your control notification handler code here
-    UpdateData(TRUE);
-    ApplySyncDownloadMutex(TRUE);
+    /* Sync time control removed from UI. */
+    m_bSetTimeSelect = FALSE;
 }
 
 /****************************************************************************
@@ -2790,6 +2908,77 @@ void CPageApplication::OnChangeEditLogoFilePath()
     UpdateData(TRUE);
 }
 
+
+void CPageApplication::OnButtonOpenPubKeyL1()
+{
+    static char BASED_CODE szMergeFilter[] = _T("PEM PubKey (*.pem)|*.pem|All Files (*.*)|*.*||");
+    CFileDialog dlg(TRUE, NULL, m_strPubKeyL1Path,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, szMergeFilter, 0);
+    if (dlg.DoModal() == IDOK)
+    {
+        m_strPubKeyL1Path = dlg.GetPathName();
+        UpdateData(FALSE);
+    }
+}
+
+void CPageApplication::OnButtonOpenPubKeyL2()
+{
+    static char BASED_CODE szMergeFilter[] = _T("PEM PubKey (*.pem)|*.pem|All Files (*.*)|*.*||");
+    CFileDialog dlg(TRUE, NULL, m_strPubKeyL2Path,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, szMergeFilter, 0);
+    if (dlg.DoModal() == IDOK)
+    {
+        m_strPubKeyL2Path = dlg.GetPathName();
+        UpdateData(FALSE);
+    }
+}
+
+void CPageApplication::OnButtonOpenPubKeyL3()
+{
+    static char BASED_CODE szMergeFilter[] = _T("PEM PubKey (*.pem)|*.pem|All Files (*.*)|*.*||");
+    CFileDialog dlg(TRUE, NULL, m_strPubKeyL3Path,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, szMergeFilter, 0);
+    if (dlg.DoModal() == IDOK)
+    {
+        m_strPubKeyL3Path = dlg.GetPathName();
+        UpdateData(FALSE);
+    }
+}
+
+void CPageApplication::OnCheckPubKeyL1()
+{
+    UpdateData(TRUE);
+    ApplySyncDownloadMutex(FALSE);
+}
+
+void CPageApplication::OnCheckPubKeyL2()
+{
+    UpdateData(TRUE);
+    ApplySyncDownloadMutex(FALSE);
+}
+
+void CPageApplication::OnCheckPubKeyL3()
+{
+    UpdateData(TRUE);
+    ApplySyncDownloadMutex(FALSE);
+}
+
+void CPageApplication::OnChangeEditPubKeyL1Path()
+{
+    UpdateData(TRUE);
+}
+
+void CPageApplication::OnChangeEditPubKeyL2Path()
+{
+    UpdateData(TRUE);
+}
+
+void CPageApplication::OnChangeEditPubKeyL3Path()
+{
+    UpdateData(TRUE);
+}
+
+
 int CPageApplication::DownloadOsStart()
 {
     BYTE abyRecvBuff[200];
@@ -2800,7 +2989,7 @@ int CPageApplication::DownloadOsStart()
     /* OS download: skip open when factory already bound the port. */
     if (!SerIsBound())
     {
-        if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1,
+        if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber,
             g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
         {
             G_MyShowMessage(MSG_OPEN_SERIAL_PORT_FAILED);
@@ -2882,7 +3071,7 @@ int CPageApplication::DownloadOsFile(char *strFileName)
     char str[100];
     BYTE byCmd, abyTemp[DOWNLOAD_LEN_FIRM+10], abyCompress[DOWNLOAD_LEN_FIRM*2+100];
     WORD wPacketLen;
-    DWORD dwCurrentLen, dwCompressLen;
+    DWORD dwCurrentLen, dwCompressLen, dwChunkPrefer;
 
     MyShowMessage("Download OS");
     fp = fopen(strFileName, "rb");
@@ -2909,6 +3098,11 @@ int CPageApplication::DownloadOsFile(char *strFileName)
     dwCurrentLen = 0;
     iErrorCount = 0;
     fseek(fp, 0, SEEK_SET);
+    dwChunkPrefer = GetFileDlChunkPrefer();
+    if (0 == dwChunkPrefer || dwChunkPrefer > DOWNLOAD_LEN_FIRM)
+    {
+        dwChunkPrefer = DOWNLOAD_LEN_FIRM;
+    }
     while (1)
     {
         if (dwCurrentLen >= (DWORD)iFileLen)
@@ -2919,6 +3113,7 @@ int CPageApplication::DownloadOsFile(char *strFileName)
             int _pct = (iFileLen > 0) ? (int)((dwCurrentLen * 100) / iFileLen) : 0;
             sprintf(str, "Download OS...%d%%", _pct);
             MyShowMessage(str);
+            SetDownloadProgress(_pct);
             if (t_iFactoryUiSlot >= 0)
             {
                 char _prog[16];
@@ -2926,8 +3121,8 @@ int CPageApplication::DownloadOsFile(char *strFileName)
                 FactoryPostStatus(t_iFactoryUiSlot, _prog, "Downloading OS");
             }
         }
-        wPacketLen = DOWNLOAD_LEN_FIRM;
-        if ((dwCurrentLen+DOWNLOAD_LEN_FIRM) > (DWORD)iFileLen)
+        wPacketLen = (WORD)dwChunkPrefer;
+        if ((dwCurrentLen + dwChunkPrefer) > (DWORD)iFileLen)
         {
             wPacketLen = (WORD)(iFileLen - dwCurrentLen);
         }
@@ -3027,6 +3222,7 @@ int CPageApplication::DownloadOsFile(char *strFileName)
                 {
                     char _prog[16];
                     sprintf(_prog, "%d%%", (int)abyTemp[5]);
+                SetDownloadProgress((int)abyTemp[5]);
                     FactoryPostStatus(t_iFactoryUiSlot, _prog, "Erase flash");
                 }
             }
@@ -3045,6 +3241,7 @@ int CPageApplication::DownloadOsFile(char *strFileName)
                 if (t_iFactoryUiSlot >= 0)
                 {
                     char _prog[16];
+                SetDownloadProgress((int)abyTemp[5]);
                     sprintf(_prog, "%d%%", (int)abyTemp[5]);
                     FactoryPostStatus(t_iFactoryUiSlot, _prog, "Write flash");
                 }
@@ -3067,6 +3264,7 @@ int CPageApplication::DownloadOsFile(char *strFileName)
                 sprintf(str, "Check...%d%%", abyTemp[5]);
                 MyShowMessage(str);
                 if (t_iFactoryUiSlot >= 0)
+                SetDownloadProgress((int)abyTemp[5]);
                 {
                     char _prog[16];
                     sprintf(_prog, "%d%%", (int)abyTemp[5]);
@@ -3113,8 +3311,17 @@ int CPageApplication::CountSelectedDownloadItems()
     if (m_bScAppSelect) n++;
     if (m_bWifiSelect) n++;
     if (m_bAppSelect) n++;
+    if (m_bPubKeyL1Select) n++;
+    if (m_bPubKeyL2Select) n++;
+    if (m_bPubKeyL3Select) n++;
     if (m_bBaleFileSelect) n++;
     return n;
+}
+
+void CPageApplication::SetDownloadProgress(int pct)
+{
+    /* Progress bar removed; status text + factory Progress column remain. */
+    (void)pct;
 }
 
 void CPageApplication::UpdateTotalProgress(const char *szItem)
@@ -3126,6 +3333,7 @@ void CPageApplication::UpdateTotalProgress(const char *szItem)
         pct = (m_iProgressDone * 100) / m_iProgressTotal;
         if (pct > 100) pct = 100;
     }
+    SetDownloadProgress(pct);
     if (szItem && szItem[0])
     {
         sprintf(sz, "%s  %d/%d  %d%%", szItem, m_iProgressDone, m_iProgressTotal, pct);
@@ -3161,7 +3369,7 @@ int CPageApplication::WaitDeviceAfterReboot()
             MyShowMessage("User stop download.");
             return 1;
         }
-        if (0 != SerOpen(g_sConfigreInfo.m_iSerialPortNumber + 1,
+        if (0 != SerOpen(g_sConfigreInfo.m_iSerialPortNumber,
             g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
         {
             Sleep(200);
@@ -3184,37 +3392,9 @@ int CPageApplication::WaitDeviceAfterReboot()
 
 void CPageApplication::ApplySyncDownloadMutex(BOOL bFromSync)
 {
-    /* D55: Sync time mutually exclusive with any download checkbox. */
-    UpdateData(TRUE);
-    if (bFromSync)
-    {
-        if (m_bSetTimeSelect)
-        {
-            m_bVOSSelect = FALSE;
-            m_bAppSelect = FALSE;
-            m_bScAppSelect = FALSE;
-            m_bWifiSelect = FALSE;
-            m_bFontFileSelect = FALSE;
-            m_bParamFileSelect = FALSE;
-            m_bDataFileSelect = FALSE;
-            m_bLogoSelect = FALSE;
-            m_bBaleFileSelect = FALSE;
-            UpdateData(FALSE);
-        }
-    }
-    else
-    {
-        if (m_bVOSSelect || m_bAppSelect || m_bScAppSelect || m_bWifiSelect
-            || m_bFontFileSelect || m_bParamFileSelect || m_bDataFileSelect
-            || m_bLogoSelect || m_bBaleFileSelect)
-        {
-            if (m_bSetTimeSelect)
-            {
-                m_bSetTimeSelect = FALSE;
-                UpdateData(FALSE);
-            }
-        }
-    }
+    /* Sync time UI removed; keep stub so existing call sites still link. */
+    (void)bFromSync;
+    m_bSetTimeSelect = FALSE;
 }
 
 BOOL CPageApplication::ValidateBeforeStart()
@@ -3225,16 +3405,10 @@ BOOL CPageApplication::ValidateBeforeStart()
         && FALSE == m_bWifiSelect && FALSE == m_bFontFileSelect
         && FALSE == m_bParamFileSelect && FALSE == m_bDataFileSelect
         && FALSE == m_bLogoSelect && FALSE == m_bBaleFileSelect
-        && FALSE == m_bSetTimeSelect)
+        && FALSE == m_bPubKeyL1Select && FALSE == m_bPubKeyL2Select
+        && FALSE == m_bPubKeyL3Select)
     {
         MyShowMessage("Please select files to download!");
-        return FALSE;
-    }
-
-    /* Sync-only is OK; otherwise Sync must not mix (UI mutex). */
-    if (m_bSetTimeSelect && CountSelectedDownloadItems() > 0)
-    {
-        MyShowMessage("Sync time cannot mix with download!");
         return FALSE;
     }
 
@@ -3247,6 +3421,9 @@ BOOL CPageApplication::ValidateBeforeStart()
         { m_bParamFileSelect, &m_strParamFilePath, "Please set Param file path!", "Param file not found!" },
         { m_bDataFileSelect, &m_strDataFilePath, "Please set Data file path!", "Data file not found!" },
         { m_bLogoSelect, &m_strLogoFilePath, "Please set Logo file path!", "Logo file not found!" },
+        { m_bPubKeyL1Select, &m_strPubKeyL1Path, "Please set L1 PubKey path!", "L1 PubKey not found!" },
+        { m_bPubKeyL2Select, &m_strPubKeyL2Path, "Please set L2 PubKey path!", "L2 PubKey not found!" },
+        { m_bPubKeyL3Select, &m_strPubKeyL3Path, "Please set L3 PubKey path!", "L3 PubKey not found!" },
         { m_bBaleFileSelect, &m_strBaleFilePath, "Please set Bale file path!", "Bale file not found!" },
     };
     int i;
@@ -3313,19 +3490,25 @@ void CPageApplication::ApplyModeUI(BOOL bFactory)
         if (bFactory) SetDlgItemText(IDC_STATIC_FACTORY_ACTIVE, "Active: 0/12");
     }
 
-    /* D34: Sync time developer only */
-    p = GetDlgItem(IDC_CHECK_SET_TIME);
-    if (p)
+    /* L1/L2/L3 PubKey: Developer only */
     {
+        int ids[] = {
+            IDC_CHECK_PUBKEY_L1, IDC_EDIT_PUBKEY_L1_PATH, IDC_BUTTON_OPEN_PUBKEY_L1,
+            IDC_CHECK_PUBKEY_L2, IDC_EDIT_PUBKEY_L2_PATH, IDC_BUTTON_OPEN_PUBKEY_L2,
+            IDC_CHECK_PUBKEY_L3, IDC_EDIT_PUBKEY_L3_PATH, IDC_BUTTON_OPEN_PUBKEY_L3
+        };
+        int k;
         if (bFactory)
         {
-            m_bSetTimeSelect = FALSE;
+            m_bPubKeyL1Select = FALSE;
+            m_bPubKeyL2Select = FALSE;
+            m_bPubKeyL3Select = FALSE;
             UpdateData(FALSE);
-            p->ShowWindow(SW_HIDE);
         }
-        else
+        for (k = 0; k < (int)(sizeof(ids)/sizeof(ids[0])); k++)
         {
-            p->ShowWindow(SW_SHOW);
+            p = GetDlgItem(ids[k]);
+            if (p) p->ShowWindow(bFactory ? SW_HIDE : SW_SHOW);
         }
     }
 
@@ -3386,7 +3569,7 @@ void CPageApplication::CaptureSelToCfg(DL_SEL_CFG &cfg)
     cfg.bVOS = m_bVOSSelect; cfg.bApp = m_bAppSelect; cfg.bSc = m_bScAppSelect;
     cfg.bWifi = m_bWifiSelect; cfg.bFont = m_bFontFileSelect; cfg.bParam = m_bParamFileSelect;
     cfg.bData = m_bDataFileSelect; cfg.bLogo = m_bLogoSelect; cfg.bBale = m_bBaleFileSelect;
-    cfg.bSync = m_bSetTimeSelect;
+    cfg.bSync = FALSE; /* Sync time removed */
     memset(cfg.szVos,0,256); strncpy(cfg.szVos, m_strVosFilePath, 255);
     memset(cfg.szApp,0,256); strncpy(cfg.szApp, m_strAppFilePath, 255);
     memset(cfg.szSc,0,256); strncpy(cfg.szSc, m_strScAppFilePath, 255);
@@ -3403,7 +3586,7 @@ void CPageApplication::ApplyCfgToSel(const DL_SEL_CFG &cfg)
     m_bVOSSelect = cfg.bVOS; m_bAppSelect = cfg.bApp; m_bScAppSelect = cfg.bSc;
     m_bWifiSelect = cfg.bWifi; m_bFontFileSelect = cfg.bFont; m_bParamFileSelect = cfg.bParam;
     m_bDataFileSelect = cfg.bData; m_bLogoSelect = cfg.bLogo; m_bBaleFileSelect = cfg.bBale;
-    m_bSetTimeSelect = cfg.bSync;
+    m_bSetTimeSelect = FALSE; /* Sync time removed */
     m_strVosFilePath = cfg.szVos; m_strAppFilePath = cfg.szApp; m_strScAppFilePath = cfg.szSc;
     m_strWifiFilePath = cfg.szWifi; m_strFontFilePath = cfg.szFont; m_strParamFilePath = cfg.szParam;
     m_strDataFilePath = cfg.szData; m_strLogoFilePath = cfg.szLogo; m_strBaleFilePath = cfg.szBale;

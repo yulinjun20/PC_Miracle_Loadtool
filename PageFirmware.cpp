@@ -23,7 +23,7 @@ extern CONFIG_INFO g_sConfigreInfo;
 
 extern void UpdateConfigure(void);
 
-extern HANDLE g_lHandle;  // �߳̾��?
+extern HANDLE g_lHandle;  // �߳̾��?
 
 extern int g_iCommCheckType;
 
@@ -132,7 +132,7 @@ BOOL CPageFirmware::OnKillActive()
 
     if( IsThreadRun() )
     {
-        return FALSE;  // ���߳�����ʱ�������治��Ӧ�û�����¼�?
+        return FALSE;  // ���߳�����ʱ�������治��Ӧ�û�����¼�?
     }
 
     return CPropertyPage::OnKillActive();
@@ -241,8 +241,8 @@ void CPageFirmware::MyEnableWindows(BOOL bFlag)
 /****************************************************************************
   ������     :  int CPageApplication::Handshack()
   ����       :  ���ֺ���
-  �������?  :  ��
-  �������?  :  ��
+  �������?  :  ��
+  �������?  :  ��
   ����ֵ     :  0���ɹ���1������ʧ�ܣ�2���򿪴���ʧ��
   �޸���ʷ   :
       �޸���     �޸�ʱ��    �޸İ汾��   �޸�ԭ��
@@ -256,7 +256,7 @@ int CPageFirmware::Handshack()
     m_bStopDownloadFlag = FALSE;
 
     // Use UI-selected baud for the whole OS download; do not change baud mid-transfer.
-    if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1,
+    if (SerOpen(g_sConfigreInfo.m_iSerialPortNumber,
         g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
     {
         G_MyShowMessage(MSG_OPEN_SERIAL_PORT_FAILED);
@@ -307,9 +307,9 @@ int CPageFirmware::DownloadStart()
 
 /****************************************************************************
   ������     :  
-  ����       :  �ļ����ش������?
-  �������?  :  
-  �������?  :  
+  ����       :  �ļ����ش������?
+  �������?  :  
+  �������?  :  
   ����ֵ     :  
   �޸���ʷ   :
       �޸���     �޸�ʱ��    �޸İ汾��   �޸�ԭ��
@@ -332,8 +332,8 @@ int CPageFirmware::DownloadProcess()
 /****************************************************************************
   ������     :  
   ����       :  
-  �������?  :  
-  �������?  :  
+  �������?  :  
+  �������?  :  
   ����ֵ     :  
   �޸���ʷ   :
       �޸���     �޸�ʱ��    �޸İ汾��   �޸�ԭ��
@@ -346,7 +346,7 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
     char str[100];
     BYTE byCmd, abyTemp[DOWNLOAD_LEN_FIRM+10], abyCompress[DOWNLOAD_LEN_FIRM*2+100];
     WORD wPacketLen;
-    DWORD dwCurrentLen, dwCompressLen;
+    DWORD dwCurrentLen, dwCompressLen, dwChunkPrefer;
 
     fp = fopen(strFileName, "rb");
     if (NULL == fp)
@@ -381,6 +381,11 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
     dwCurrentLen = 0;
     iErrorCount = 0;
     fseek(fp, 0, SEEK_SET);
+    dwChunkPrefer = GetFileDlChunkPrefer();
+    if (0 == dwChunkPrefer || dwChunkPrefer > DOWNLOAD_LEN_FIRM)
+    {
+        dwChunkPrefer = DOWNLOAD_LEN_FIRM;
+    }
 //    MyShowMessage("�����ļ�2");
     while (1)
     {
@@ -390,8 +395,8 @@ int CPageFirmware::DownloadFile(char *strFileName, BYTE byFileType)
         }
         sprintf(str, "Download OS...%d%%", (int)((dwCurrentLen * 100) / iFileLen));
         MyShowMessage(str);
-        wPacketLen = DOWNLOAD_LEN_FIRM;
-        if ((dwCurrentLen+DOWNLOAD_LEN_FIRM) > (DWORD)iFileLen)
+        wPacketLen = (WORD)dwChunkPrefer;
+        if ((dwCurrentLen + dwChunkPrefer) > (DWORD)iFileLen)
         {
             wPacketLen = (WORD)(iFileLen - dwCurrentLen);
         }

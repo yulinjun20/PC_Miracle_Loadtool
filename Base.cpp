@@ -48,7 +48,20 @@ void InitConfig(CONFIG_INFO *psConfig)
     psConfig->m_byPrinterType = 0xff;  // NO select Priniter type
     memcpy(psConfig->m_abySeed, "\x03\xf2\xb1\x4c\x33\x1c\x3e\xd7", 8);
     memcpy(psConfig->m_abyVerFlag, "\x00\x01", 2);  // ?·Ú???0.1
+    psConfig->m_dwPacketSize = 4096;  // default packet/chunk size
 }
+
+DWORD GetFileDlChunkPrefer(void)
+{
+    DWORD dw = g_sConfigreInfo.m_dwPacketSize;
+    if (512 == dw || 4096 == dw)
+    {
+        return dw;
+    }
+    return 4096;
+}
+
+
 
 
 // Clear path fields that point to missing files (stale history from old machines).
@@ -168,6 +181,11 @@ int GetConfigureInfo(void)
     fclose(fp);
 
     // Persist pruned paths so stale history does not come back next launch.
+    if (512 != g_sConfigreInfo.m_dwPacketSize && 4096 != g_sConfigreInfo.m_dwPacketSize)
+    {
+        g_sConfigreInfo.m_dwPacketSize = 4096;
+    }
+    g_sConfigreInfo.m_byCommType = 0;  /* USB UI removed; always serial */
     (void)SaveConfigInfo();
     return 0;
 }

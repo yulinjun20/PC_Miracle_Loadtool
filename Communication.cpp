@@ -1130,7 +1130,7 @@ BYTE PortOpen()
 {
     if (0 == g_sConfigreInfo.m_byCommType)
     {
-        return SerOpen(g_sConfigreInfo.m_iSerialPortNumber+1, 
+        return SerOpen(g_sConfigreInfo.m_iSerialPortNumber, 
             g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]);
     }
     else

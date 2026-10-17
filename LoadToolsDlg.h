@@ -48,7 +48,6 @@ public:
 // Implementation
 protected:
 	HICON m_hIcon;
-	CBitmap m_bmpLogo;
 
 	// Generated message map functions
 	//{{AFX_MSG(CLoadToolsDlg)

@@ -26,7 +26,7 @@
 
 struct CONFIG_INFO
 {
-    int m_iSerialPortNumber;           // combo index 0..98 -> COM1..COM99
+    int m_iSerialPortNumber;           // real COM port number (e.g. 3 for COM3)
     int m_iSerialPortBaudsSelect;      // baud index 0..9
 
     char m_strBootFilePath[256];       // boot文件存放路径
@@ -70,8 +70,8 @@ struct CONFIG_INFO
     BYTE m_byScAppSelect;             // SC App download select
     BYTE m_byWifiSelect;              // WIFI download select
     BYTE m_byLogoSelect;              // Logo download select
-
-    BYTE m_abyRev[240];                // 保留字段
+    DWORD m_dwPacketSize;             // download chunk prefer: 512 or 4096 (0->4096)
+    BYTE m_abyRev[236];               // reserved
 };
 
 
@@ -79,6 +79,7 @@ void DwordToByte(DWORD dwIn, BYTE *pbyOut);
 
 int GetConfigureInfo(void);
 int SaveConfigInfo(void);
+DWORD GetFileDlChunkPrefer(void);
 void GetRandom(BYTE *pbyRandomOut);
 
 

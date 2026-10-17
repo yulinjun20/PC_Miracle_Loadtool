@@ -95,6 +95,7 @@ public:
     void ApplySyncDownloadMutex(BOOL bFromSync);
     BOOL ValidateBeforeStart();
     void UpdateTotalProgress(const char *szItem);
+    void SetDownloadProgress(int pct);
     int  CountSelectedDownloadItems();
     void AbortFileSession(BYTE byReason);
     int  WaitDeviceAfterReboot();
@@ -164,6 +165,12 @@ public:
     BOOL    m_bScAppSelect;
     BOOL    m_bWifiSelect;
     BOOL    m_bLogoSelect;
+    BOOL    m_bPubKeyL1Select;
+    BOOL    m_bPubKeyL2Select;
+    BOOL    m_bPubKeyL3Select;
+    CString m_strPubKeyL1Path;
+    CString m_strPubKeyL2Path;
+    CString m_strPubKeyL3Path;
     BOOL    m_bVOSSelect;               // OS file select          // 数据文件选中标志
 
     CFlatButton m_btnDownload;
@@ -180,6 +187,9 @@ public:
     CFlatButton m_btnOpenScAppFile;
     CFlatButton m_btnOpenWifiFile;
     CFlatButton m_btnOpenLogoFile;
+    CFlatButton m_btnOpenPubKeyL1;
+    CFlatButton m_btnOpenPubKeyL2;
+    CFlatButton m_btnOpenPubKeyL3;
     
     CFlatButton m_btnDeleteAppendFile;
     //}}AFX_DATA
@@ -214,6 +224,9 @@ protected:
     afx_msg void OnButtonOpenScAppFile();
     afx_msg void OnButtonOpenWifiFile();
     afx_msg void OnButtonOpenLogoFile();
+    afx_msg void OnButtonOpenPubKeyL1();
+    afx_msg void OnButtonOpenPubKeyL2();
+    afx_msg void OnButtonOpenPubKeyL3();
     afx_msg void OnCheckVosSelect();
     afx_msg void OnChangeEditVosFilePath();
     afx_msg void OnCheckAppSelect();
@@ -226,6 +239,9 @@ protected:
     afx_msg void OnCheckScAppFile();
     afx_msg void OnCheckWifiFile();
     afx_msg void OnCheckLogoFile();
+    afx_msg void OnCheckPubKeyL1();
+    afx_msg void OnCheckPubKeyL2();
+    afx_msg void OnCheckPubKeyL3();
     afx_msg void OnRadioModeDeveloper();
     afx_msg void OnRadioModeFactory();
     afx_msg void OnChangeEditBaleFilePath();
@@ -236,6 +252,9 @@ protected:
     afx_msg void OnChangeEditScAppFilePath();
     afx_msg void OnChangeEditWifiFilePath();
     afx_msg void OnChangeEditLogoFilePath();
+    afx_msg void OnChangeEditPubKeyL1Path();
+    afx_msg void OnChangeEditPubKeyL2Path();
+    afx_msg void OnChangeEditPubKeyL3Path();
     afx_msg void OnDblclkTreeFileList(NMHDR* pNMHDR, LRESULT* pResult);
     //}}AFX_MSG
     DECLARE_MESSAGE_MAP()

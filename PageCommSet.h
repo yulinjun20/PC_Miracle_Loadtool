@@ -21,6 +21,7 @@ public:
 
     // 是否有线程在运行
     BOOL IsThreadRun();
+    int GetSelectedComPortNumber();
     
 // Dialog Data
     //{{AFX_DATA(CPageCommSet)
@@ -46,8 +47,9 @@ protected:
     virtual BOOL OnInitDialog();
     afx_msg void OnSelchangeComboComBaud();
     afx_msg void OnSelchangeComboComPortNumber();
-    afx_msg void OnRadioUseCom();
-    afx_msg void OnRadioUseUsb();
+    afx_msg void OnRadioPacket512();
+    afx_msg void OnRadioPacket4096();
+    afx_msg void OnButtonComRefresh();
     //}}AFX_MSG
     DECLARE_MESSAGE_MAP()
 
