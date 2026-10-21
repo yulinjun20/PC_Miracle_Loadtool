@@ -31,6 +31,7 @@
 #define FILE_TYPE_PUBKEY_L1      9   /* SignTool X.509 PEM L1 */
 #define FILE_TYPE_PUBKEY_L2      10  /* SignTool X.509 PEM L2 */
 #define FILE_TYPE_PUBKEY_L3      11  /* SignTool X.509 PEM L3 */
+#define FILE_TYPE_BALE_PKG       12  /* Whole Local bale; device unpacks */
 
 // �����������?
 #define BALE_TASK_APPLICATION    0x01
@@ -40,6 +41,9 @@
 #define BALE_TASK_VOS            0x05
 #define BALE_TASK_PARA           0x06
 #define BALE_TASK_DATA           0x07
+#define BALE_TASK_SC_APP         0x08
+#define BALE_TASK_WIFI           0x09
+#define BALE_TASK_LOGO           0x0A
 #define BALE_TASK_DEL_APP        0x81
 #define BALE_TASK_DEL_ALL_APP    0x82
 #define BALE_TASK_CREATE_FILE    0x8f

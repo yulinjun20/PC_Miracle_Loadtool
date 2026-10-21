@@ -49,6 +49,8 @@ void InitConfig(CONFIG_INFO *psConfig)
     memcpy(psConfig->m_abySeed, "\x03\xf2\xb1\x4c\x33\x1c\x3e\xd7", 8);
     memcpy(psConfig->m_abyVerFlag, "\x00\x01", 2);  // ?·Ú???0.1
     psConfig->m_dwPacketSize = 4096;  // default packet/chunk size
+    /* g_adwBauds[9]=921600 (see PageApplication.cpp). */
+    psConfig->m_iSerialPortBaudsSelect = 9;
 }
 
 DWORD GetFileDlChunkPrefer(void)
@@ -184,6 +186,10 @@ int GetConfigureInfo(void)
     if (512 != g_sConfigreInfo.m_dwPacketSize && 4096 != g_sConfigreInfo.m_dwPacketSize)
     {
         g_sConfigreInfo.m_dwPacketSize = 4096;
+    }
+    if (g_sConfigreInfo.m_byStopOnDownloadFail > 1)
+    {
+        g_sConfigreInfo.m_byStopOnDownloadFail = 0;
     }
     g_sConfigreInfo.m_byCommType = 0;  /* USB UI removed; always serial */
     (void)SaveConfigInfo();

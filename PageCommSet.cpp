@@ -29,7 +29,8 @@ CPageCommSet::CPageCommSet() : CPropertyPage(CPageCommSet::IDD)
 {
     //{{AFX_DATA_INIT(CPageCommSet)
     m_iSerialPortNumber = 0;
-    m_iSerialPortBauds = 0;
+    m_iSerialPortBauds = 9; /* default 921600 (g_adwBauds[9]) */
+    m_bStopOnDownloadFail = FALSE;
     //}}AFX_DATA_INIT
 }
 
@@ -43,6 +44,7 @@ void CPageCommSet::DoDataExchange(CDataExchange* pDX)
     //{{AFX_DATA_MAP(CPageCommSet)
     DDX_CBIndex(pDX, IDC_COMBO_COM_PORT_NUMBER, m_iSerialPortNumber);
     DDX_CBIndex(pDX, IDC_COMBO_COM_BAUD, m_iSerialPortBauds);
+    DDX_Check(pDX, IDC_CHECK_STOP_ON_FAIL, m_bStopOnDownloadFail);
     //}}AFX_DATA_MAP
 }
 
@@ -54,6 +56,7 @@ BEGIN_MESSAGE_MAP(CPageCommSet, CPropertyPage)
     ON_BN_CLICKED(IDC_RADIO_PACKET_512, OnRadioPacket512)
     ON_BN_CLICKED(IDC_RADIO_PACKET_4096, OnRadioPacket4096)
     ON_BN_CLICKED(IDC_BUTTON_COM_REFRESH, OnButtonComRefresh)
+    ON_BN_CLICKED(IDC_CHECK_STOP_ON_FAIL, OnCheckStopOnFail)
     //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -230,8 +233,8 @@ BOOL CPageCommSet::OnInitDialog()
     m_iSerialPortBauds = g_sConfigreInfo.m_iSerialPortBaudsSelect;
     if (m_iSerialPortBauds < 0 || m_iSerialPortBauds > 9)
     {
-        m_iSerialPortBauds = 0;
-        g_sConfigreInfo.m_iSerialPortBaudsSelect = 0;
+        m_iSerialPortBauds = 9; /* default 921600 */
+        g_sConfigreInfo.m_iSerialPortBaudsSelect = 9;
     }
 
     {
@@ -248,6 +251,10 @@ BOOL CPageCommSet::OnInitDialog()
             ((CButton *)GetDlgItem(IDC_RADIO_PACKET_4096))->SetCheck(TRUE);
         }
     }
+
+    if (g_sConfigreInfo.m_byStopOnDownloadFail > 1)
+        g_sConfigreInfo.m_byStopOnDownloadFail = 0;
+    m_bStopOnDownloadFail = (0 != g_sConfigreInfo.m_byStopOnDownloadFail);
 
     UpdateData(FALSE);
 
@@ -304,6 +311,13 @@ void CPageCommSet::OnRadioPacket512()
 void CPageCommSet::OnRadioPacket4096()
 {
     g_sConfigreInfo.m_dwPacketSize = 4096;
+    (void)SaveConfigInfo();
+}
+
+void CPageCommSet::OnCheckStopOnFail()
+{
+    UpdateData(TRUE);
+    g_sConfigreInfo.m_byStopOnDownloadFail = m_bStopOnDownloadFail ? 1 : 0;
     (void)SaveConfigInfo();
 }
 

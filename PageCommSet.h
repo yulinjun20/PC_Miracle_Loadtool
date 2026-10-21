@@ -28,6 +28,7 @@ public:
     enum { IDD = IDD_DIALOG_COMM_SET };
     int    m_iSerialPortNumber;
     int    m_iSerialPortBauds;
+    BOOL   m_bStopOnDownloadFail;
     //}}AFX_DATA
 
 
@@ -50,6 +51,7 @@ protected:
     afx_msg void OnRadioPacket512();
     afx_msg void OnRadioPacket4096();
     afx_msg void OnButtonComRefresh();
+    afx_msg void OnCheckStopOnFail();
     //}}AFX_MSG
     DECLARE_MESSAGE_MAP()
 

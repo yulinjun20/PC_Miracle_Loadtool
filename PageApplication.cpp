@@ -9,6 +9,7 @@
 #define WM_FACTORY_UI_UPDATE  (WM_USER + 210)
 #define WM_FACTORY_UI_ENABLE (WM_USER + 211)
 #define WM_FACTORY_SCAN_MSG  (WM_USER + 212)
+#define WM_APP_SHOW_MSG      (WM_USER + 213)
 #define FAC_HS_NONE  0
 #define FAC_HS_LA    1
 #define FAC_HS_TS    2
@@ -23,6 +24,9 @@ extern int g_iCommCheckType;
 #include "LoadToolsDlg.h"
 #include "Communication.h"
 #include "LoadToolsDefine.h"
+
+/* Bale download: OS is installed and the device reboots before other files. */
+static int s_baleOsInstallFirst = 0;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -82,6 +86,8 @@ CPageApplication::CPageApplication() : CPropertyPage(CPageApplication::IDD)
     m_strVosFilePath = _T("");
     m_bAppSelect = FALSE;
     m_bBaleFileSelect = FALSE;
+    m_bBaleWholePkg = FALSE;
+    m_bBaleSkipFinalFinish = FALSE;
     m_bCreateFileSystemSelect = FALSE;
     m_bFontFileSelect = FALSE;
     m_bParamFileSelect = FALSE;
@@ -120,6 +126,7 @@ void CPageApplication::DoDataExchange(CDataExchange* pDX)
     DDX_Text(pDX, IDC_EDIT_PARAM_FILE_PATH, m_strParamFilePath);
     DDX_Check(pDX, IDC_CHECK_APP_SELECT, m_bAppSelect);
     DDX_Check(pDX, IDC_CHECK_BALE_FILE, m_bBaleFileSelect);
+    DDX_Check(pDX, IDC_CHECK_BALE_WHOLE_PKG, m_bBaleWholePkg);
     DDX_Check(pDX, IDC_CHECK_FONT_FILE, m_bFontFileSelect);
     DDX_Check(pDX, IDC_CHECK_PARAM_FILE, m_bParamFileSelect);
     DDX_Text(pDX, IDC_EDIT_DATA_FILE_PATH, m_strDataFilePath);
@@ -183,6 +190,7 @@ BEGIN_MESSAGE_MAP(CPageApplication, CPropertyPage)
     ON_BN_CLICKED(IDC_BUTTON_OPEN_PUBKEY_L3, OnButtonOpenPubKeyL3)
     ON_BN_CLICKED(IDC_CHECK_APP_SELECT, OnCheckAppSelect)
     ON_BN_CLICKED(IDC_CHECK_BALE_FILE, OnCheckBaleFile)
+    ON_BN_CLICKED(IDC_CHECK_BALE_WHOLE_PKG, OnCheckBaleWholePkg)
     ON_BN_CLICKED(IDC_CHECK_CREATE_FILE_SYSTEM, OnCheckCreateFileSystem)
     ON_BN_CLICKED(IDC_CHECK_FONT_FILE, OnCheckFontFile)
     ON_BN_CLICKED(IDC_CHECK_PARAM_FILE, OnCheckParamFile)
@@ -198,6 +206,7 @@ BEGIN_MESSAGE_MAP(CPageApplication, CPropertyPage)
     ON_MESSAGE(WM_FACTORY_UI_UPDATE, OnFactoryUiUpdate)
     ON_MESSAGE(WM_FACTORY_UI_ENABLE, OnFactoryUiEnable)
     ON_MESSAGE(WM_FACTORY_SCAN_MSG, OnFactoryScanMsg)
+    ON_MESSAGE(WM_APP_SHOW_MSG, OnAppShowMsg)
     ON_BN_CLICKED(IDC_CHECK_VOS_SELECT, OnCheckVosSelect)
     ON_EN_CHANGE(IDC_EDIT_BALE_FILE_PATH, OnChangeEditBaleFilePath)
     ON_EN_CHANGE(IDC_EDIT_FONT_FILE_PATH, OnChangeEditFontFilePath)
@@ -270,7 +279,9 @@ BOOL CPageApplication::OnInitDialog()
     m_bCreateFileSystemSelect = FALSE;
     g_sConfigreInfo.m_byCreateFileSystemSelect = 0;
     m_bSetTimeSelect          = g_sConfigreInfo.m_bySetTimeSelect;
-    m_bDataFileSelect         = g_sConfigreInfo.m_byDataFileSelect;
+    /* Data download disabled. */
+    m_bDataFileSelect         = FALSE;
+    g_sConfigreInfo.m_byDataFileSelect = 0;
     m_bScAppSelect            = g_sConfigreInfo.m_byScAppSelect;
     m_bWifiSelect             = g_sConfigreInfo.m_byWifiSelect;
     m_bLogoSelect             = g_sConfigreInfo.m_byLogoSelect;
@@ -399,6 +410,13 @@ BOOL CPageApplication::OnInitDialog()
     m_btnOpenDataFile.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
     m_btnOpenDataFile.SetShowText(TRUE);
     m_btnOpenDataFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+    /* Data row visible again but disabled / not selectable. */
+    {
+        CWnd *p;
+        p = GetDlgItem(IDC_CHECK_DATA_FILE); if (p) { p->ShowWindow(SW_SHOW); p->EnableWindow(FALSE); }
+        p = GetDlgItem(IDC_EDIT_DATA_FILE_PATH); if (p) { p->ShowWindow(SW_SHOW); p->EnableWindow(FALSE); }
+        p = GetDlgItem(IDC_BUTTON_OPEN_DATA_FILE); if (p) { p->ShowWindow(SW_SHOW); p->EnableWindow(FALSE); }
+    }
 
     m_btnOpenVosFile.SetIcon(IDI_ICON_OPEN1, NULL, 32, 32);
     m_btnOpenVosFile.SetShowText(TRUE);
@@ -428,6 +446,9 @@ BOOL CPageApplication::OnInitDialog()
     m_btnDeleteAppendFile.SetIcon(IDI_ICON_DELETE2, NULL, 35, 32);
     m_btnDeleteAppendFile.SetShowText(TRUE);
     m_btnDeleteAppendFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+
+    m_bBaleWholePkg = FALSE;
+    UpdateBaleWholePkgUi();
     
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -562,11 +583,49 @@ int CPageApplication::DownloadStart()
       ?????     ??????    ???��??   ??????
   1?? ?????     2007-10-08   V1.0        ????
 ****************************************************************************/
-void CPageApplication::DownloadEnd()
+void CPageApplication::ClearDownloadProgress(void)
+{
+    m_iProgressDone = 0;
+    m_iProgressTotal = 0;
+    m_strProgressCurrent.Empty();
+}
+
+void CPageApplication::DownloadEnd(BYTE byBaleContinue)
 {
     BYTE abyTemp[2];
 
-    (void)Crc16SendPacket(abyTemp, 0, CMD_FINSH_ALL);
+    /* Finish DATA[0]=1: multi-file bale will continue after OS reboot. */
+    if (byBaleContinue)
+    {
+        abyTemp[0] = 1;
+        (void)Crc16SendPacket(abyTemp, 1, CMD_FINSH_ALL);
+    }
+    else
+    {
+        (void)Crc16SendPacket(abyTemp, 0, CMD_FINSH_ALL);
+    }
+    Sleep(50);
+    SerClose();
+}
+
+void CPageApplication::DownloadAbandon(void)
+{
+    BYTE abyTemp[2];
+
+    /* Finish DATA[0]=2: device discards pending and exits without install. */
+    abyTemp[0] = 2;
+    (void)Crc16SendPacket(abyTemp, 1, CMD_FINSH_ALL);
+    Sleep(50);
+    SerClose();
+}
+
+void CPageApplication::DownloadEndDeferOs(void)
+{
+    BYTE abyTemp[2];
+
+    /* Finish DATA[0]=3: keep pending on device; wait for OS 'T' then install. */
+    abyTemp[0] = 3;
+    (void)Crc16SendPacket(abyTemp, 1, CMD_FINSH_ALL);
     Sleep(50);
     SerClose();
 }
@@ -589,7 +648,7 @@ int CPageApplication::UpdateTreeList()
 
     char str[256];
 
-    MyShowMessage("Refurbish infomation");
+    MyShowMessage("Refresh information");
 
     /* SN read/write removed: show POS type only. */
     memset(&abyTemp[100], ' ', 200);
@@ -616,7 +675,7 @@ int CPageApplication::UpdateTreeList()
     {
         if (RECV_TIMEOUT == iRet)
         {
-            MyShowMessage("Recive timeout when get application list!");
+            MyShowMessage("Receive timeout when get application list!");
         }
         else
         {
@@ -668,7 +727,7 @@ int CPageApplication::UpdateTreeList()
         }
         if (k >= COMM_RETRY_TIMES)
         {
-            MyShowMessage("Get application infomation error!");
+            MyShowMessage("Get application information error!");
             return 1;
         }
         if (0 != abyTemp[5])
@@ -914,6 +973,8 @@ int ThreadDownload(void *pTemp)
 
     g_bThreadRunFlag = TRUE;
     pPage->MyEnableWindows(FALSE);
+    /* New session: never reuse a prior bale x/n (e.g. stopped at 1/4). */
+    pPage->ClearDownloadProgress();
 
     bOs = pPage->m_bVOSSelect;
     bAppSide = (pPage->m_bAppSelect
@@ -965,7 +1026,35 @@ int ThreadDownload(void *pTemp)
             {
                 iLastError = iRet;
             }
-            pPage->DownloadEnd();
+            /* Success: Finish installs all pending (incl. bale post-OS remainder).
+             * Bale fail or user Stop: Abort + abandon (no install).
+             * Multi-file continue-on-fail with errors: still Finish to install OK items. */
+            if (0 == iLastError && !pPage->m_bStopDownloadFlag)
+            {
+                if (!pPage->m_bBaleSkipFinalFinish)
+                {
+                    pPage->DownloadEnd();
+                }
+                pPage->m_bBaleSkipFinalFinish = FALSE;
+            }
+            else if (pPage->m_bStopDownloadFlag || pPage->m_bBaleFileSelect)
+            {
+                pPage->AbortFileSession(1);
+                pPage->DownloadAbandon();
+                pPage->m_bBaleSkipFinalFinish = FALSE;
+                if (pPage->m_bStopDownloadFlag)
+                {
+                    pPage->MyShowMessage("User stop download.");
+                }
+            }
+            else
+            {
+                if (!pPage->m_bBaleSkipFinalFinish)
+                {
+                    pPage->DownloadEnd();
+                }
+                pPage->m_bBaleSkipFinalFinish = FALSE;
+            }
         }
         else if (2 == iRet)
         {
@@ -993,6 +1082,11 @@ int ThreadDownload(void *pTemp)
         }
     }
 
+    /* Interrupted mid-bale: drop stale x/n before UI is re-enabled. */
+    if (pPage->m_bStopDownloadFlag)
+    {
+        pPage->ClearDownloadProgress();
+    }
     pPage->MyEnableWindows(TRUE);
     g_bThreadRunFlag = FALSE;
     return 0;
@@ -1067,10 +1161,15 @@ void CPageApplication::OnButtonStopDownloadApp()
 {
     m_bStopDownloadFlag = TRUE;
     m_bFactoryStopScan = TRUE; /* D40: stop all + stop scan */
+    /* Drop bale x/n immediately so the next download recalculates from scratch. */
+    ClearDownloadProgress();
     /* Do not flip Start/Stop here for factory: manager re-enables when scan ends.
        For developer, re-enable Start so UI is not stuck if thread exits oddly. */
     if (DL_MODE_DEVELOPER == m_iDownloadMode)
+    {
         MyEnableWindows(TRUE);
+        MyShowMessage("Stopped.");
+    }
     else
         MyShowMessage("Factory: stopping...");
 }
@@ -1244,6 +1343,35 @@ void CPageApplication::OnCheckAppSelect()
       ?????     ??????    ???��??   ??????
   1?? ?????     2007-10-08   V1.0        ????
 ****************************************************************************/
+void CPageApplication::UpdateBaleWholePkgUi()
+{
+    CWnd *p = GetDlgItem(IDC_CHECK_BALE_WHOLE_PKG);
+    if (NULL == p)
+    {
+        return;
+    }
+    if (!m_bBaleFileSelect)
+    {
+        m_bBaleWholePkg = FALSE;
+        ((CButton *)p)->SetCheck(FALSE);
+        p->EnableWindow(FALSE);
+    }
+    else
+    {
+        p->EnableWindow(TRUE);
+    }
+}
+
+void CPageApplication::OnCheckBaleWholePkg()
+{
+    UpdateData(TRUE);
+    if (m_bBaleWholePkg && !m_bBaleFileSelect)
+    {
+        m_bBaleWholePkg = FALSE;
+        UpdateData(FALSE);
+    }
+}
+
 void CPageApplication::OnCheckBaleFile() 
 {
     // TODO: Add your control notification handler code here
@@ -1262,6 +1390,12 @@ void CPageApplication::OnCheckBaleFile()
         m_bLogoSelect = FALSE;
         UpdateData(FALSE);
     }
+    else
+    {
+        m_bBaleWholePkg = FALSE;
+        UpdateData(FALSE);
+    }
+    UpdateBaleWholePkgUi();
 }
 
 /****************************************************************************
@@ -1426,8 +1560,24 @@ void CPageApplication::OnChangeEditParamFilePath()
 ****************************************************************************/
 void CPageApplication::MyShowMessage(char *strMsg)
 {
+    DWORD tidUi;
     if (!GetSafeHwnd() || NULL == strMsg)
     {
+        return;
+    }
+    tidUi = GetWindowThreadProcessId(m_hWnd, NULL);
+    if (GetCurrentThreadId() != tidUi)
+    {
+        char *psz = (char *)malloc(strlen(strMsg) + 1);
+        if (NULL == psz)
+        {
+            return;
+        }
+        strcpy(psz, strMsg);
+        if (!PostMessage(WM_APP_SHOW_MSG, 0, (LPARAM)psz))
+        {
+            free(psz);
+        }
         return;
     }
     SetDlgItemText(IDC_STATIC_PAGE_APP_MESSAGE, strMsg);
@@ -1453,24 +1603,114 @@ void CPageApplication::OnChangeEditAppFilePath()
 ****************************************************************************/
 void CPageApplication::MyEnableWindows(BOOL bFlag)
 {
+    CWnd *p;
+    int i;
+    DWORD tidUi;
+    /* Marshal to UI thread (download/factory workers must not EnableWindow). */
     if (!GetSafeHwnd())
     {
         return;
     }
+    tidUi = GetWindowThreadProcessId(m_hWnd, NULL);
+    if (GetCurrentThreadId() != tidUi)
+    {
+        PostMessage(WM_FACTORY_UI_ENABLE, (WPARAM)bFlag, 0);
+        return;
+    }
+    /* Download running (bFlag==FALSE): freeze item checks so user cannot
+     * uncheck current / toggle other items mid-transfer. */
+    static const int s_checkIds[] = {
+        IDC_CHECK_APP_SELECT,
+        IDC_CHECK_BALE_FILE,
+        IDC_CHECK_BALE_WHOLE_PKG,
+        IDC_CHECK_FONT_FILE,
+        IDC_CHECK_PARAM_FILE,
+        IDC_CHECK_VOS_SELECT,
+        IDC_CHECK_SC_APP_FILE,
+        IDC_CHECK_WIFI_FILE,
+        IDC_CHECK_LOGO_FILE,
+        IDC_CHECK_PUBKEY_L1,
+        IDC_CHECK_PUBKEY_L2,
+        IDC_CHECK_PUBKEY_L3,
+        IDC_CHECK_CREATE_FILE_SYSTEM
+    };
+    static const int s_openIds[] = {
+        IDC_BUTTON_OPEN_APP_FILE,
+        IDC_BUTTON_OPEN_BALE_FILE,
+        IDC_BUTTON_OPEN_FONT_FILE,
+        IDC_BUTTON_OPEN_PARAM_FILE,
+        IDC_BUTTON_OPEN_VOS_FILE,
+        IDC_BUTTON_OPEN_SC_APP_FILE,
+        IDC_BUTTON_OPEN_WIFI_FILE,
+        IDC_BUTTON_OPEN_LOGO_FILE,
+        IDC_BUTTON_OPEN_PUBKEY_L1,
+        IDC_BUTTON_OPEN_PUBKEY_L2,
+        IDC_BUTTON_OPEN_PUBKEY_L3
+    };
+    static const int s_editIds[] = {
+        IDC_EDIT_APP_FILE_PATH,
+        IDC_EDIT_BALE_FILE_PATH,
+        IDC_EDIT_FONT_FILE_PATH,
+        IDC_EDIT_PARAM_FILE_PATH,
+        IDC_EDIT_VOS_FILE_PATH,
+        IDC_EDIT_SC_APP_FILE_PATH,
+        IDC_EDIT_WIFI_FILE_PATH,
+        IDC_EDIT_LOGO_FILE_PATH,
+        IDC_EDIT_PUBKEY_L1_PATH,
+        IDC_EDIT_PUBKEY_L2_PATH,
+        IDC_EDIT_PUBKEY_L3_PATH
+    };
+
     if (m_btnDownload.GetSafeHwnd())
         m_btnDownload.EnableWindow(bFlag);
     else
     {
-        CWnd *p = GetDlgItem(IDC_BUTTON_BEGIN_DOWNLOAD_APP);
+        p = GetDlgItem(IDC_BUTTON_BEGIN_DOWNLOAD_APP);
         if (p) p->EnableWindow(bFlag);
     }
     if (m_btnStop.GetSafeHwnd())
         m_btnStop.EnableWindow(!bFlag);
     else
     {
-        CWnd *p = GetDlgItem(IDC_BUTTON_STOP_DOWNLOAD_APP);
+        p = GetDlgItem(IDC_BUTTON_STOP_DOWNLOAD_APP);
         if (p) p->EnableWindow(!bFlag);
     }
+
+    for (i = 0; i < (int)(sizeof(s_checkIds) / sizeof(s_checkIds[0])); i++)
+    {
+        p = GetDlgItem(s_checkIds[i]);
+        if (p) p->EnableWindow(bFlag);
+    }
+    /* Data stays permanently disabled. */
+    p = GetDlgItem(IDC_CHECK_DATA_FILE);
+    if (p) p->EnableWindow(FALSE);
+    /* Whole-pkg only enabled when Bale is selected (and UI idle). */
+    if (bFlag)
+    {
+        UpdateBaleWholePkgUi();
+    }
+
+    for (i = 0; i < (int)(sizeof(s_openIds) / sizeof(s_openIds[0])); i++)
+    {
+        p = GetDlgItem(s_openIds[i]);
+        if (p) p->EnableWindow(bFlag);
+    }
+    p = GetDlgItem(IDC_BUTTON_OPEN_DATA_FILE);
+    if (p) p->EnableWindow(FALSE);
+
+    for (i = 0; i < (int)(sizeof(s_editIds) / sizeof(s_editIds[0])); i++)
+    {
+        p = GetDlgItem(s_editIds[i]);
+        if (p) p->EnableWindow(bFlag);
+    }
+    p = GetDlgItem(IDC_EDIT_DATA_FILE_PATH);
+    if (p) p->EnableWindow(FALSE);
+
+    /* Mode radios: no switch while downloading. */
+    p = GetDlgItem(IDC_RADIO_MODE_DEVELOPER);
+    if (p) p->EnableWindow(bFlag);
+    p = GetDlgItem(IDC_RADIO_MODE_FACTORY);
+    if (p) p->EnableWindow(bFlag);
 }
 
 
@@ -1751,12 +1991,15 @@ int CPageApplication::SetVposTime()
 ****************************************************************************/
 int CPageApplication::DownloadProcess()
 {
-    int i, iRet;
+    int i;
     int iLastError = 0;
     BOOL bAppOk = FALSE;
+    BOOL bStopOnFail = (0 != g_sConfigreInfo.m_byStopOnDownloadFail);
     BYTE byAttachAppNo = 0;
 
     m_bCreateFileSystemSelect = FALSE;
+    /* Always rebuild x/n for this run (do not keep a previous bale 1/4). */
+    ClearDownloadProgress();
     m_iProgressTotal = CountSelectedDownloadItems();
     m_iProgressDone = 0;
     SetDownloadProgress(0);
@@ -1768,45 +2011,43 @@ int CPageApplication::DownloadProcess()
         || m_bDataFileSelect
         || m_bPubKeyL1Select || m_bPubKeyL2Select || m_bPubKeyL3Select)
     {
-        /* Transfer order. Device installs each file on End (PC waits End RSP).
-           OS (legacy) installed last on Finish (reboot). SC before App so SC installs first.
-           Bale = PC unpack then per-item DownloadFile (D54). Continue-on-fail (D68). */
+        /* Transfer order. All types save on End; install on Finish.
+           SC before App. Continue-on-fail unless Comm Set "Stop on first error". */
+#define DL_STEP_FAIL_GOTO(label) do { \
+            if (0 != i) { iLastError = i; if (bStopOnFail) goto label; } \
+        } while (0)
+
         if (m_bFontFileSelect)
         {
             i = DownloadFile(m_strFontFilePath.GetBuffer(0), FILE_TYPE_FONT, 0);
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bLogoSelect)
         {
             i = DownloadFile(m_strLogoFilePath.GetBuffer(0), FILE_TYPE_LOGO, 0);
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bParamFileSelect)
         {
             byAttachAppNo = 0;
             i = DownloadFile(m_strParamFilePath.GetBuffer(0), FILE_TYPE_PARAM, byAttachAppNo);
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
-        if (m_bDataFileSelect)
-        {
-            i = DownloadFile(m_strDataFilePath.GetBuffer(0), FILE_TYPE_DATA, 0);
-            m_iProgressDone++;
-            if (0 != i) iLastError = i;
-        }
+        /* Data download disabled — skip even if stale config was checked. */
         if (m_bScAppSelect)
         {
             i = DownloadFile(m_strScAppFilePath.GetBuffer(0), FILE_TYPE_SC_APP, 0);
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bWifiSelect)
         {
             i = DownloadFile(m_strWifiFilePath.GetBuffer(0), FILE_TYPE_WIFI, 0);
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         /* PubKey order fixed: L1 -> L2 -> L3 (L2/L3 need parent on device). */
         if (m_bPubKeyL1Select)
@@ -1817,7 +2058,7 @@ int CPageApplication::DownloadProcess()
                 m_strPubKeyL1Path.ReleaseBuffer();
             }
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bPubKeyL2Select)
         {
@@ -1827,7 +2068,7 @@ int CPageApplication::DownloadProcess()
                 m_strPubKeyL2Path.ReleaseBuffer();
             }
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bPubKeyL3Select)
         {
@@ -1837,7 +2078,7 @@ int CPageApplication::DownloadProcess()
                 m_strPubKeyL3Path.ReleaseBuffer();
             }
             m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            DL_STEP_FAIL_GOTO(dl_done);
         }
         if (m_bAppSelect)
         {
@@ -1847,6 +2088,7 @@ int CPageApplication::DownloadProcess()
             {
                 iLastError = i;
                 bAppOk = FALSE;
+                if (bStopOnFail) goto dl_done;
             }
             else
             {
@@ -1855,13 +2097,36 @@ int CPageApplication::DownloadProcess()
         }
         if (m_bBaleFileSelect)
         {
-            i = DownloadBaleFile();
-            m_iProgressDone++;
-            if (0 != i) iLastError = i;
+            if (m_bBaleWholePkg)
+            {
+                /* Temp: send whole Local bale; device unpacks + installs. */
+                MyShowMessage("Bale package...");
+                i = DownloadFile(m_strBaleFilePath.GetBuffer(0), FILE_TYPE_BALE_PKG, 0);
+                m_strBaleFilePath.ReleaseBuffer();
+            }
+            else
+            {
+                /* Bale maintains its own x/n inside DownloadBaleFile. */
+                i = DownloadBaleFile();
+            }
+            if (0 != i)
+            {
+                iLastError = i;
+                if (bStopOnFail) goto dl_done;
+            }
         }
+dl_done:
+#undef DL_STEP_FAIL_GOTO
+        (void)bAppOk;
         if (0 == iLastError)
         {
-            MyShowMessage("Download success!");
+            MyShowMessage("Download success! (device may still be installing)");
+        }
+        else if (bStopOnFail)
+        {
+            char szSum[160];
+            sprintf(szSum, "Stopped on error (code %d).", iLastError);
+            MyShowMessage(szSum);
         }
         else
         {
@@ -2031,6 +2296,16 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
             return 1;
         }
         strcpy(strMsg, "L3 PubKey");
+        break;
+    case FILE_TYPE_BALE_PKG:
+        /* Local bale header is 16 bytes; allow multi-image packages up to 8MB. */
+        if (iFileLen < 20 || iFileLen > (8 * 1024 * 1024))
+        {
+            MyShowMessage("Bale package size error!");
+            fclose(fp);
+            return 1;
+        }
+        strcpy(strMsg, "Bale package");
         break;
     default:
         fclose(fp);
@@ -2247,14 +2522,13 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         dwOffset += (DWORD)iReadLen;
     }
 
-    /* End 0xB214: device verifies then installs this file before End RSP. */
+    /* End 0xB214: verify + save pending only; install runs on Finish.
+     * Pubkey still applied on device at End (small, needed for later verify). */
     {
-        DWORD dwEndTimeout = 60000; /* default 60s */
-        if (FILE_TYPE_SC_APP == byFileType || FILE_TYPE_WIFI == byFileType)
-            dwEndTimeout = 300000; /* MH2101 / ESP flash can take minutes */
-        else if (FILE_TYPE_APPLICATION == byFileType)
-            dwEndTimeout = 180000;
-        MyShowMessage("Verify + installing...");
+        DWORD dwEndTimeout = 60000; /* transfer + verify + promote */
+        char szEndPhase[96];
+        sprintf(szEndPhase, "%s: transfer done, saving...", strMsg);
+        MyShowMessage(szEndPhase);
         abySend[0] = (BYTE)(((DWORD)iFileLen >> 24) & 0xff);
         abySend[1] = (BYTE)(((DWORD)iFileLen >> 16) & 0xff);
         abySend[2] = (BYTE)(((DWORD)iFileLen >> 8) & 0xff);
@@ -2271,7 +2545,7 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
         if (0 != iRet)
         {
             fclose(fp);
-            MyShowMessage("End/Install: no response / timeout!");
+            MyShowMessage("End: no response / timeout!");
             return 15;
         }
     }
@@ -2332,7 +2606,15 @@ int CPageApplication::DownloadFile(char *strFileName, BYTE byFileType,
             return 5;
         }
     }
-    MyShowMessage("Success!");
+    /* Non-pubkey: install on Finish. Pubkey already applied on device at End. */
+    {
+        char szOk[96];
+        if (byFileType >= FILE_TYPE_PUBKEY_L1 && byFileType <= FILE_TYPE_PUBKEY_L3)
+            sprintf(szOk, "%s: OK", strMsg);
+        else
+            sprintf(szOk, "%s: transfer OK (install on Finish)", strMsg);
+        MyShowMessage(szOk);
+    }
     return 0;
 }
 
@@ -2414,19 +2696,10 @@ void CPageApplication::OnButtonOpenDataFile()
 
 void CPageApplication::OnCheckDataFile() 
 {
-    // TODO: Add your control notification handler code here
-    UpdateData(TRUE);
-    ApplySyncDownloadMutex(FALSE);
-    ApplyOsDownloadMutex(FALSE);
-    if (m_bBaleFileSelect)
-    {
-        if (m_bDataFileSelect)
-        {
-            m_bDataFileSelect = FALSE;
-            UpdateData(FALSE);
-            MessageBox("If you want to download data file, you can't select bale file!");
-        }
-    }
+    /* Data download disabled. */
+    m_bDataFileSelect = FALSE;
+    g_sConfigreInfo.m_byDataFileSelect = 0;
+    UpdateData(FALSE);
 }
 
 void CPageApplication::OnChangeEditDataFilePath() 
@@ -2440,6 +2713,83 @@ void CPageApplication::OnChangeEditDataFilePath()
     UpdateData(TRUE);
 }
 
+static int BaleTaskIsFile(BYTE byType)
+{
+    switch (byType)
+    {
+    case BALE_TASK_APPLICATION:
+    case BALE_TASK_PARAM:
+    case BALE_TASK_FONT:
+    case BALE_TASK_VOS:
+    case BALE_TASK_PARA:
+    case BALE_TASK_SC_APP:
+    case BALE_TASK_WIFI:
+    case BALE_TASK_LOGO:
+        return 1;
+    default:
+        return 0;
+    }
+}
+
+/*
+ * After bale OS transfer: wait for reboot (USB drop or min quiet).
+ * Device then installs remaining pendings locally — no PC continue download.
+ */
+static int WaitBaleUiAfterOs(CPageApplication *pPage)
+{
+    DWORD dwBegin;
+    DWORD dwPhase1End;
+    int iSeenDisconnect = 0;
+    const DWORD dwMinQuietMs = 15000;
+    const DWORD dwPhase1MaxMs = 90000;
+
+    pPage->MyShowMessage("OS install, waiting reboot...");
+    SerClose();
+
+    dwBegin = GetTickCount();
+    dwPhase1End = dwBegin + dwPhase1MaxMs;
+    while ((GetTickCount() - dwBegin) < dwPhase1MaxMs)
+    {
+        if (pPage->m_bStopDownloadFlag)
+        {
+            pPage->MyShowMessage("User stop download.");
+            return 1;
+        }
+        if (0 != SerOpen(g_sConfigreInfo.m_iSerialPortNumber,
+            g_adwBauds[g_sConfigreInfo.m_iSerialPortBaudsSelect]))
+        {
+            iSeenDisconnect = 1;
+            pPage->MyShowMessage("Device rebooting...");
+            break;
+        }
+        SerClose();
+        if ((GetTickCount() - dwBegin) >= dwMinQuietMs)
+        {
+            pPage->MyShowMessage("OS reboot window done");
+            break;
+        }
+        Sleep(400);
+    }
+    if (!iSeenDisconnect && (GetTickCount() >= dwPhase1End))
+    {
+        pPage->MyShowMessage("No USB drop yet; assuming reboot");
+    }
+
+    /* Remaining files already pending on device; resume installs after reboot.
+     * Do not poll L/A or send Finish into the reboot window. */
+    if (iSeenDisconnect)
+    {
+        Sleep(3000);
+    }
+    else
+    {
+        Sleep(1000);
+    }
+    SerClose();
+    pPage->MyShowMessage("OS reboot done; device installs rest");
+    return 0;
+}
+
 int CPageApplication::DownloadBaleFile()
 {
     /* Default app no 0 for standalone Param/Data; App task overwrites after download. */
@@ -2448,10 +2798,14 @@ int CPageApplication::DownloadBaleFile()
     BYTE byTaskNum, 
         abyIndex[1200], 
         abyTempBuff[2048];
-    int iRet, i, iCreateFileSystemFlag = 0;
+    int iRet, i;
+    int iFileTotal, iFileSeq, iHasVos, iVosDone, iOrderN;
+    int aiOrder[80];
+    BYTE abyType[80];
+    DWORD adwOff[80];
     FILE *fp;
     DWORD dwTemp;
-    WORD wRecvLen;
+    char szProg[64];
     
     fp = fopen(m_strBaleFilePath.GetBuffer(0), "rb");
     if (NULL == fp)
@@ -2478,10 +2832,19 @@ int CPageApplication::DownloadBaleFile()
         MessageBox("Read bale file error!");
         return 1;
     }
-    for (i=0; i<byTaskNum; i++)
+    if (byTaskNum > 80)
+    {
+        fclose(fp);
+        MessageBox("Too many tasks in bale file!");
+        return 1;
+    }
+    iFileTotal = 0;
+    iHasVos = 0;
+    for (i = 0; i < byTaskNum; i++)
     {
         dwTemp = (abyIndex[i*4]*256+abyIndex[i*4+1])*65536
             + abyIndex[i*4+2]*256 + abyIndex[i*4+3];
+        adwOff[i] = dwTemp;
         fseek(fp, dwTemp, SEEK_SET);
         iRet = fread(abyTempBuff, 1, 1, fp);
         if (1 != iRet)
@@ -2490,62 +2853,77 @@ int CPageApplication::DownloadBaleFile()
             MessageBox("Read bale file error!");
             return 1;
         }
-        switch (abyTempBuff[0])
+        abyType[i] = abyTempBuff[0];
+        if (BaleTaskIsFile(abyType[i]))
+        {
+            iFileTotal++;
+        }
+        if (BALE_TASK_VOS == abyType[i])
+        {
+            iHasVos = 1;
+        }
+    }
+    /* Download all non-OS first (pending), then OS last; install is OS-first on device. */
+    iOrderN = 0;
+    for (i = 0; i < byTaskNum; i++)
+    {
+        if (BALE_TASK_VOS != abyType[i])
+        {
+            aiOrder[iOrderN++] = i;
+        }
+    }
+    for (i = 0; i < byTaskNum; i++)
+    {
+        if (BALE_TASK_VOS == abyType[i])
+        {
+            aiOrder[iOrderN++] = i;
+        }
+    }
+    m_iProgressTotal = iFileTotal;
+    m_iProgressDone = 0;
+    m_bBaleSkipFinalFinish = FALSE;
+    if (iFileTotal > 0)
+    {
+        sprintf(szProg, "Bale 0/%d", iFileTotal);
+        MyShowMessage(szProg);
+    }
+    s_baleOsInstallFirst = 0;
+    iFileSeq = 0;
+    iVosDone = 0;
+    for (i = 0; i < iOrderN; i++)
+    {
+        dwTemp = adwOff[aiOrder[i]];
+        fseek(fp, dwTemp, SEEK_SET);
+        iRet = fread(abyTempBuff, 1, 1, fp);
+        if (1 != iRet)
+        {
+            s_baleOsInstallFirst = 0;
+            fclose(fp);
+            MessageBox("Read bale file error!");
+            return 1;
+        }
+        {
+            BYTE byTask = abyTempBuff[0];
+        /* Before first OS task: defer Finish so device keeps non-OS pendings. */
+        if ((BALE_TASK_VOS == byTask) && iHasVos && !iVosDone)
+        {
+            DownloadEndDeferOs();
+            s_baleOsInstallFirst = 1;
+        }
+        if (BaleTaskIsFile(byTask))
+        {
+            iFileSeq++;
+            m_iProgressDone = iFileSeq;
+            m_iProgressTotal = iFileTotal;
+            sprintf(szProg, "Bale %d/%d", iFileSeq, iFileTotal);
+            MyShowMessage(szProg);
+        }
+        switch (byTask)
         {
         case BALE_TASK_CREATE_FILE:
-            iRet = fread(abyTempBuff, 1, 8, fp);
-            if (8 != iRet)
-            {
-                fclose(fp);
-                MessageBox("Read bale file error!");
-                return 1;
-            }
-            if (0 == memcmp(abyTempBuff,"81921170",8))
-            {
-                MyShowMessage("Recreate file system...");
-                Crc16SendPacket(abyTempBuff, 0, CMD_CREATE_FILE_SYSTEM_REQUEST);
-                (void)Crc16RecvPacket(abyTempBuff, &wRecvLen, 30000);
-                DownloadEnd();
-                iRet = DownloadStart();
-                if (0 != iRet)
-                {
-                    fclose(fp);
-                    MyShowMessage("Download success!");
-                    return 0;
-                }            
-                iCreateFileSystemFlag = 1;
-            }
-            break;
         case BALE_TASK_DEL_APP:
-            if (iCreateFileSystemFlag)
-            {
-                break;
-            }
-            MyShowMessage("Delete application...");
-            memset(abyTempBuff, 0, 33);
-            iRet = fread(abyTempBuff, 1, 32, fp);
-            if (32 == iRet)
-            {
-                abyTempBuff[32] = 0;
-                iRet = Crc16SendPacket(abyTempBuff, 33, CMD_DELETE_FILE_REQUEST);
-                if (0 != iRet)
-                {
-                    MessageBox("Send file failed!");
-                    return 1;
-                }
-                iRet = Crc16RecvPacket(abyTempBuff, &wRecvLen, 1000);
-                if (0 != iRet)
-                {
-                    MessageBox("Receive response packet failed when delete application!");
-                    return 1;
-                }
-            }
-            else
-            {
-                fclose(fp);
-                MessageBox("Read bale file error!");
-                return 1;
-            }
+        case BALE_TASK_DEL_ALL_APP:
+            /* Skipped in receive-all flow (not used by current Task bale). */
             break;
         case BALE_TASK_APPLICATION:
             iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_APPLICATION);
@@ -2563,13 +2941,17 @@ int CPageApplication::DownloadBaleFile()
                 return 1;
             }
             break;
-        case BALE_TASK_DATA:
-            iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_DATA);
+        case BALE_TASK_PARA:
+            iRet = ParseBaleFile(fp, dwTemp+1+32, FILE_TYPE_PARAM);
             if (0 != iRet)
             {
                 fclose(fp);
                 return 1;
             }
+            break;
+        case BALE_TASK_DATA:
+        case BALE_TASK_DATAM:
+            MyShowMessage("Skip Data in bale...");
             break;
         case BALE_TASK_FONT:
             iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_FONT);
@@ -2579,14 +2961,60 @@ int CPageApplication::DownloadBaleFile()
                 return 1;
             }
             break;
+        case BALE_TASK_SC_APP:
+            iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_SC_APP);
+            if (0 != iRet)
+            {
+                fclose(fp);
+                return 1;
+            }
+            break;
+        case BALE_TASK_WIFI:
+            iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_WIFI);
+            if (0 != iRet)
+            {
+                fclose(fp);
+                return 1;
+            }
+            break;
+        case BALE_TASK_LOGO:
+            iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_LOGO);
+            if (0 != iRet)
+            {
+                fclose(fp);
+                return 1;
+            }
+            break;
+        case BALE_TASK_VOS:
+            /* OS last: legacy 'T' stage; device installs OS then reboots to install rest. */
+            iRet = ParseBaleFile(fp, dwTemp+1, FILE_TYPE_VOS);
+            if (0 != iRet)
+            {
+                s_baleOsInstallFirst = 0;
+                fclose(fp);
+                return 1;
+            }
+            iVosDone = 1;
+            s_baleOsInstallFirst = 0;
+            /* Device installs remaining after reboot; PC only waits for reboot. */
+            if (0 != WaitBaleUiAfterOs(this))
+            {
+                ClearDownloadProgress();
+                fclose(fp);
+                return 1;
+            }
+            m_bBaleSkipFinalFinish = TRUE;
+            break;
         default:
+            s_baleOsInstallFirst = 0;
             fclose(fp);
             MessageBox("Task type error!");
             return 1;
         }
+        }
     }
 
-
+    s_baleOsInstallFirst = 0;
     fclose(fp);
     return 0;
 }
@@ -2605,6 +3033,13 @@ int CPageApplication::ParseBaleFile(FILE *fp, DWORD dwOffset, BYTE byFileType)
     switch (byFileType)
     {
     case FILE_TYPE_APPLICATION:
+    case FILE_TYPE_SC_APP:
+    case FILE_TYPE_WIFI:
+    case FILE_TYPE_LOGO:
+    case FILE_TYPE_VOS:
+        /* Bale payload after type(+pos already skipped by caller for App/SC/OS/WiFi/Logo):
+         * ParseBaleFile offset points at pos byte for App (dwTemp+1 after type).
+         * Layout: pos(1) + compress(1) + size(4) + raw...  — same as App packing. */
         iRet = fread(abyTemp, 1, 6, fp);
         if (6 != iRet)
         {
@@ -2616,7 +3051,7 @@ int CPageApplication::ParseBaleFile(FILE *fp, DWORD dwOffset, BYTE byFileType)
                 + abyTemp[4]*256 + abyTemp[5];
             if (dwUnzipLen > (1536*1024))
             {
-                (void)MessageBox("Parse file failed, the application file size to long!");
+                (void)MessageBox("Parse file failed, the application file size too long!");
                 return 1;
             }
             strcat(strTempDir, "\\Temp.hjb");
@@ -2652,8 +3087,40 @@ int CPageApplication::ParseBaleFile(FILE *fp, DWORD dwOffset, BYTE byFileType)
                     break;
                 }
             }
+            if (FILE_TYPE_VOS == byFileType)
+            {
+                /* Bale OS-first sets this: L session already released, and the
+                 * device reboots before the next file. Do not Finish/re-L here. */
+                if (!s_baleOsInstallFirst)
+                {
+                    DownloadEnd();
+                }
+                iRet = DownloadOsStart();
+                if (0 == iRet)
+                {
+                    iRet = DownloadOsFile(strTempDir);
+                    if (0 == iRet)
+                    {
+                        DownloadOsEnd();
+                    }
+                    else
+                    {
+                        SerClose();
+                    }
+                }
+                else if (2 != iRet)
+                {
+                    SerClose();
+                }
+                if ((0 == iRet) && (!s_baleOsInstallFirst))
+                {
+                    iRet = DownloadStart();
+                }
+                DeleteFile(strTempDir);
+                return iRet;
+            }
             m_iCurrentAppNo = -1;
-            iRet = DownloadFile(strTempDir, FILE_TYPE_APPLICATION, 0);
+            iRet = DownloadFile(strTempDir, byFileType, 0);
             DeleteFile(strTempDir);
             return iRet;
         }
@@ -3130,7 +3597,15 @@ int CPageApplication::DownloadOsFile(char *strFileName)
         }
         {
             int _pct = (iFileLen > 0) ? (int)((dwCurrentLen * 100) / iFileLen) : 0;
-            sprintf(str, "Download OS...%d%%", _pct);
+            if (m_iProgressTotal > 0)
+            {
+                sprintf(str, "Download OS %d/%d...%d%%",
+                    m_iProgressDone, m_iProgressTotal, _pct);
+            }
+            else
+            {
+                sprintf(str, "Download OS...%d%%", _pct);
+            }
             MyShowMessage(str);
             SetDownloadProgress(_pct);
             if (t_iFactoryUiSlot >= 0)
@@ -3311,8 +3786,15 @@ void CPageApplication::DownloadOsEnd()
 {
     BYTE abyTemp[2];
 
+    /*
+     * At high baud (e.g. 921600) a single D2 + 50ms close often loses the end
+     * frame; device stays in 0xB0 wait, later answers L without installing OS.
+     * Resend D2 and give the device time to leave the receive loop.
+     */
     (void)CmdSendPacket(abyTemp, 0, 0xD2);
-    Sleep(50);
+    Sleep(200);
+    (void)CmdSendPacket(abyTemp, 0, 0xD2);
+    Sleep(300);
     SerClose();
     MyShowMessage("OS download finish.");
 }
@@ -3483,7 +3965,7 @@ BOOL CPageApplication::ValidateBeforeStart()
         { m_bWifiSelect, &m_strWifiFilePath, "Please set WIFI file path!", "WIFI file not found!" },
         { m_bFontFileSelect, &m_strFontFilePath, "Please set Font file path!", "Font file not found!" },
         { m_bParamFileSelect, &m_strParamFilePath, "Please set Param file path!", "Param file not found!" },
-        { m_bDataFileSelect, &m_strDataFilePath, "Please set Data file path!", "Data file not found!" },
+        /* Data download disabled — omit path check. */
         { m_bLogoSelect, &m_strLogoFilePath, "Please set Logo file path!", "Logo file not found!" },
         { m_bPubKeyL1Select, &m_strPubKeyL1Path, "Please set L1 PubKey path!", "L1 PubKey not found!" },
         { m_bPubKeyL2Select, &m_strPubKeyL2Path, "Please set L2 PubKey path!", "L2 PubKey not found!" },
@@ -3853,6 +4335,19 @@ LRESULT CPageApplication::OnFactoryUiEnable(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+LRESULT CPageApplication::OnAppShowMsg(WPARAM wParam, LPARAM lParam)
+{
+    char *msg = (char *)lParam;
+    (void)wParam;
+    if (msg)
+    {
+        if (GetSafeHwnd())
+            SetDlgItemText(IDC_STATIC_PAGE_APP_MESSAGE, msg);
+        free(msg);
+    }
+    return 0;
+}
+
 LRESULT CPageApplication::OnFactoryScanMsg(WPARAM wParam, LPARAM lParam)
 {
     char *msg = (char *)lParam;
@@ -4200,13 +4695,38 @@ int CPageApplication::FactoryRunDeviceSession(int slot)
             iRet = DownloadProcess();
             if (0 != iRet)
                 iLast = iRet;
-            DownloadEnd();
+            if (0 == iLast && !m_bStopDownloadFlag && !m_bFactoryStopScan)
+            {
+                if (!m_bBaleSkipFinalFinish)
+                {
+                    DownloadEnd();
+                }
+                m_bBaleSkipFinalFinish = FALSE;
+            }
+            else if (m_bStopDownloadFlag || m_bFactoryStopScan || m_bBaleFileSelect)
+            {
+                AbortFileSession(1);
+                DownloadAbandon();
+                m_bBaleSkipFinalFinish = FALSE;
+            }
+            else
+            {
+                if (!m_bBaleSkipFinalFinish)
+                {
+                    DownloadEnd();
+                }
+                m_bBaleSkipFinalFinish = FALSE;
+            }
         }
         else
         {
             iLast = iRet;
             if (2 != iRet)
-                DownloadEnd();
+            {
+                AbortFileSession(1);
+                DownloadAbandon();
+            }
+            m_bBaleSkipFinalFinish = FALSE;
         }
     }
 

@@ -46,14 +46,24 @@ CFlatButton::CFlatButton()
 
 CFlatButton::~CFlatButton()
 {
-    // Destroy the icons (if any)
+    /* SetIcon(..., NULL) aliases m_hIconOut = m_hIconIn; destroy once. */
     if (m_hIconIn != NULL)
-        ::DeleteObject(m_hIconIn);
+    {
+        ::DestroyIcon(m_hIconIn);
+        if (m_hIconOut == m_hIconIn)
+            m_hIconOut = NULL;
+        m_hIconIn = NULL;
+    }
     if (m_hIconOut != NULL)
-        ::DeleteObject(m_hIconOut);
-    // Destroy the cursor (if any)
+    {
+        ::DestroyIcon(m_hIconOut);
+        m_hIconOut = NULL;
+    }
     if (m_hCursor != NULL)
+    {
         ::DestroyCursor(m_hCursor);
+        m_hCursor = NULL;
+    }
 }
 
 
@@ -71,16 +81,27 @@ END_MESSAGE_MAP()
 // CFlatButton message handlers
 void CFlatButton::SetIcon(int nIconInId, int nIconOutId, BYTE cx, BYTE cy)
 {
-    HINSTANCE hInstResource = AfxFindResourceHandle(MAKEINTRESOURCE(nIconInId),
+    HINSTANCE hInstResource;
+    HICON hOldIn = m_hIconIn;
+    HICON hOldOut = m_hIconOut;
+
+    hInstResource = AfxFindResourceHandle(MAKEINTRESOURCE(nIconInId),
         RT_GROUP_ICON);
-    // Set icon when the mouse is IN the button
     m_hIconIn = (HICON)::LoadImage(hInstResource, MAKEINTRESOURCE(nIconInId),
         IMAGE_ICON, 0, 0, 0);
-    
-    // Set icon when the mouse is OUT the button
     m_hIconOut = (nIconOutId == NULL) ? m_hIconIn : (HICON)::LoadImage(hInstResource,
         MAKEINTRESOURCE(nIconOutId), IMAGE_ICON, 0, 0, 0);
-    
+
+    /* Free previous icons after load; shared out==in only once. */
+    if (hOldIn != NULL)
+    {
+        ::DestroyIcon(hOldIn);
+        if (hOldOut == hOldIn)
+            hOldOut = NULL;
+    }
+    if (hOldOut != NULL)
+        ::DestroyIcon(hOldOut);
+
     m_cxIcon = cx;
     m_cyIcon = cy;
     
@@ -184,6 +205,9 @@ void CFlatButton::OnMouseMove(UINT nFlags, CPoint point)
     CWnd* pParent; // Finestra che contiene il bottone
     
     CButton::OnMouseMove(nFlags, point);
+
+    if (!IsWindowEnabled())
+        return;
     
     // If the mouse enter the button with the left button pressed
     // then do nothing
@@ -247,15 +271,27 @@ void CFlatButton::OnKillFocus(CWnd * pNewWnd)
 
 void CFlatButton::OnCaptureChanged(CWnd *pWnd) 
 {
+    /* Capture already lost; do not call ReleaseCapture again. */
     if (m_MouseOnButton == TRUE)
     {
-        ReleaseCapture();
+        m_MouseOnButton = FALSE;
         Invalidate();
     }
     
     // Call base message handler
     CButton::OnCaptureChanged(pWnd);
 } // End of OnCaptureChanged
+
+
+void CFlatButton::CancelHover()
+{
+    if (m_MouseOnButton == TRUE)
+        m_MouseOnButton = FALSE;
+    if (GetSafeHwnd() != NULL && GetCapture() == this)
+        ReleaseCapture();
+    if (GetSafeHwnd() != NULL)
+        Invalidate();
+}
 
 
 void CFlatButton::DrawItem(LPDRAWITEMSTRUCT lpDIS)
@@ -287,7 +323,9 @@ void CFlatButton::DrawItem(LPDRAWITEMSTRUCT lpDIS)
     
     // Prepare draw... paint button's area with background color
     COLORREF bgColor;
-    if ((m_MouseOnButton == TRUE) || (bIsPressed))
+    if (bIsDisabled)
+        bgColor = RGB(192, 192, 192);
+    else if ((m_MouseOnButton == TRUE) || (bIsPressed))
         bgColor = GetActiveBgColor();
     else
         bgColor = GetInactiveBgColor();
@@ -412,7 +450,12 @@ void CFlatButton::DrawItem(LPDRAWITEMSTRUCT lpDIS)
         CFont *pCurrentFont = GetFont(); 
         CFont *pOldFont = pDC->SelectObject(pCurrentFont);
 #endif
-        if ((m_MouseOnButton == TRUE) || (bIsPressed)) 
+        if (bIsDisabled)
+        {
+            pDC->SetTextColor(RGB(128, 128, 128));
+            pDC->SetBkColor(RGB(192, 192, 192));
+        }
+        else if ((m_MouseOnButton == TRUE) || (bIsPressed)) 
         {
             pDC->SetTextColor(GetActiveFgColor());
             pDC->SetBkColor(GetActiveBgColor());

@@ -186,15 +186,25 @@ BYTE SerRead(BYTE *lpByte , WORD wLength , DWORD dwTimeoutMs)
     COMSTAT        ComStat;
     DWORD       dwBeginTick, dwCurTick;
     BYTE        i=0;
+    HANDLE      hComm;
+
+    hComm = ActiveComm();
+    if (hComm == INVALID_HANDLE_VALUE || hComm == NULL)
+    {
+        /* Port gone (e.g. device reboot): silent fail for reconnect poll. */
+        return 0xfe;
+    }
 
     dwBeginTick = GetTickCount();
     while (1)
     {
-        ClearCommError(ActiveComm(), &dwErrorFlags, &ComStat);
-        fReadStat = ReadFile(ActiveComm(), lpByte+i, wLength-i, &dwReaded, NULL);
+        ClearCommError(hComm, &dwErrorFlags, &ComStat);
+        fReadStat = ReadFile(hComm, lpByte+i, wLength-i, &dwReaded, NULL);
         if (!fReadStat)
         {
-            MessageBox(NULL, "Failed to receive data!", "ERROR", MB_OK);
+            /* Do not MessageBox: OS reboot / USB re-enum makes ReadFile fail
+             * often while WaitBaleUiAfterOs polls for L/A. */
+            (void)ClearCommError(hComm, &dwErrorFlags, &ComStat);
             return 0xfe;
         }
 

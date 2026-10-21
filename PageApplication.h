@@ -50,7 +50,15 @@ public:
 
     int DownloadStart();
 
-    void DownloadEnd();
+    /* byBaleContinue=1: Finish DATA[0]=1, device resumes download after OS reboot. */
+    void DownloadEnd(BYTE byBaleContinue = 0);
+    /* Finish DATA[0]=2: discard pending on device, do not install (fail/Stop). */
+    void DownloadAbandon(void);
+    /* Finish DATA[0]=3: keep pending, defer install, wait for OS 'T'. */
+    void DownloadEndDeferOs(void);
+    void ClearDownloadProgress(void);
+    /* 1: bale already finished install cycle (OS path); skip caller DownloadEnd. */
+    BOOL m_bBaleSkipFinalFinish;
 
     int UpdateTreeList();
 
@@ -137,6 +145,7 @@ public:
     afx_msg LRESULT OnFactoryUiUpdate(WPARAM wParam, LPARAM lParam);
     afx_msg LRESULT OnFactoryUiEnable(WPARAM wParam, LPARAM lParam);
     afx_msg LRESULT OnFactoryScanMsg(WPARAM wParam, LPARAM lParam);
+    afx_msg LRESULT OnAppShowMsg(WPARAM wParam, LPARAM lParam);
     void FactoryPostEnable(BOOL bStartEnable);
     void FactoryPostScanMsg(const char *msg);
     BOOL FactoryPortIsDone(int portNo);
@@ -158,6 +167,7 @@ public:
     CString    m_strLogoFilePath;          // Logo path (placeholder)
     BOOL    m_bAppSelect;               // 应用程序选中标志
     BOOL    m_bBaleFileSelect;          // 打包文件选中标志
+    BOOL    m_bBaleWholePkg;            // temp: send whole bale, device unpacks
     BOOL    m_bCreateFileSystemSelect;  // 创建文件系统选中标志
     BOOL    m_bFontFileSelect;          // 字库文件选中标志
     BOOL    m_bParamFileSelect;         // 参数文件选中标志
@@ -232,6 +242,8 @@ protected:
     afx_msg void OnChangeEditVosFilePath();
     afx_msg void OnCheckAppSelect();
     afx_msg void OnCheckBaleFile();
+    afx_msg void OnCheckBaleWholePkg();
+    void UpdateBaleWholePkgUi();
     afx_msg void OnCheckCreateFileSystem();
     afx_msg void OnCheckFontFile();
     afx_msg void OnCheckParamFile();

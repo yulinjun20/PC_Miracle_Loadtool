@@ -75,6 +75,9 @@ public:
     void DrawBorder(BOOL bEnable = TRUE);
     void SetIcon(int nIconInId, int nIconOutId = NULL, BYTE cx = 32, BYTE cy = 32);
 
+    /* Clear hover/capture before modal dialogs or EnableWindow(FALSE). */
+    void CancelHover();
+
     static const short GetVersionI();
     static const char* GetVersionC();
 

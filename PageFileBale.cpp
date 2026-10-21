@@ -67,7 +67,9 @@ void CPageFileBale::DoDataExchange(CDataExchange* pDX)
     DDX_Control(pDX, IDC_BUTTON_ADD_APP, m_btnAddAppFile);
     DDX_Control(pDX, IDC_BUTTON_ADD_FONT, m_btnAddFontFile);
     DDX_Control(pDX, IDC_BUTTON_ADD_PARAM, m_btnAddParamFile);
-    DDX_Control(pDX, IDC_BUTTON_DATA_FILE, m_btnAddDataFile);
+    DDX_Control(pDX, IDC_BUTTON_ADD_DATA_FILE, m_btnAddDataFile);
+    DDX_Control(pDX, IDC_BUTTON_ADD_LOGO, m_btnAddLogoFile);
+    DDX_Control(pDX, IDC_BUTTON_ADD_WIFI, m_btnAddWifiFile);
     DDX_Control(pDX, IDC_BUTTON_ADD_APP_DELETE, m_btnAddDeleteApp);
     DDX_Control(pDX, IDC_BUTTON_ADD_CREATE_FILE_SYSTEM, m_btnAddCreateFileSystem);
     DDX_Control(pDX, IDC_BUTTON_DEL_TASK, m_btnDeleteTask);
@@ -94,6 +96,8 @@ BEGIN_MESSAGE_MAP(CPageFileBale, CPropertyPage)
     ON_BN_CLICKED(IDC_RADIO_LOCAL_DOWNLOAD, OnRadioLocalDownload)
     ON_BN_CLICKED(IDC_BUTTON_SAVE_INFO, OnButtonSaveInfo)
     ON_BN_CLICKED(IDC_BUTTON_ADD_DATA_FILE, OnButtonAddDataFile)
+    ON_BN_CLICKED(IDC_BUTTON_ADD_LOGO, OnButtonAddLogo)
+    ON_BN_CLICKED(IDC_BUTTON_ADD_WIFI, OnButtonAddWifi)
     //}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -126,6 +130,9 @@ BOOL CPageFileBale::OnInitDialog()
     // TODO: Add extra initialization here
     
     m_bAddVosFlag = FALSE;
+    m_bAddScAppFlag = FALSE;
+    m_bAddLogoFlag = FALSE;
+    m_bAddWifiFlag = FALSE;
     m_iAppFileNumber = 0;
     m_iAppendFileNumber = 0;
 
@@ -138,6 +145,7 @@ BOOL CPageFileBale::OnInitDialog()
     m_btnAddAppFile.SetIcon(IDI_ICON_UP,NULL, 40, 32);
     m_btnAddAppFile.SetShowText(TRUE);
     m_btnAddAppFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+    SetDlgItemText(IDC_BUTTON_ADD_APP, "App");
         
     m_btnAddFontFile.SetIcon(IDI_ICON_UP,NULL, 40, 32);
     m_btnAddFontFile.SetShowText(TRUE);
@@ -150,6 +158,17 @@ BOOL CPageFileBale::OnInitDialog()
     m_btnAddDataFile.SetIcon(IDI_ICON_UP,NULL, 40, 32);
     m_btnAddDataFile.SetShowText(TRUE);
     m_btnAddDataFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+    SetDlgItemText(IDC_BUTTON_ADD_DATA_FILE, "SC App");
+
+    m_btnAddLogoFile.SetIcon(IDI_ICON_UP,NULL, 40, 32);
+    m_btnAddLogoFile.SetShowText(TRUE);
+    m_btnAddLogoFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+
+    m_btnAddWifiFile.SetIcon(IDI_ICON_UP,NULL, 40, 32);
+    m_btnAddWifiFile.SetShowText(TRUE);
+    m_btnAddWifiFile.SetActiveBgColor(RGB(200,200,200), FALSE);
+    /* WiFi packing removed: download WiFi only on Download page. */
+    GetDlgItem(IDC_BUTTON_ADD_WIFI)->ShowWindow(SW_HIDE);
 
     m_btnAddDeleteApp.SetIcon(IDI_ICON_UP,NULL, 40, 32);
     m_btnAddDeleteApp.SetShowText(TRUE);
@@ -158,8 +177,12 @@ BOOL CPageFileBale::OnInitDialog()
     m_btnAddCreateFileSystem.SetIcon(IDI_ICON_UP, NULL, 40, 32);
     m_btnAddCreateFileSystem.SetShowText(TRUE);
     m_btnAddCreateFileSystem.SetActiveBgColor(RGB(200,200,200), FALSE);
-    // Create file system feature removed from UI.
+    /* Data / Del.* / Remote / Create FS removed from Local-only Task bale. */
     GetDlgItem(IDC_BUTTON_ADD_CREATE_FILE_SYSTEM)->ShowWindow(SW_HIDE);
+    GetDlgItem(IDC_BUTTON_ADD_APP_DELETE)->ShowWindow(SW_HIDE);
+    GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->ShowWindow(SW_HIDE);
+    GetDlgItem(IDC_RADIO_REMOTE_DOWNLOAD)->ShowWindow(SW_HIDE);
+    GetDlgItem(IDC_CHECK_RMOTE_COMPRESS)->ShowWindow(SW_HIDE);
     
     m_btnDeleteTask.SetIcon(IDI_ICON_DELETE1, NULL, 45, 32);
     m_btnDeleteTask.SetShowText(TRUE);
@@ -182,21 +205,13 @@ BOOL CPageFileBale::OnInitDialog()
     m_btnSaveInfo.SetActiveBgColor(RGB(200,200,200), FALSE);
 
     ((CButton *)GetDlgItem(IDC_CHECK_RMOTE_COMPRESS))->SetCheck(TRUE);
-    
-    if (LOCAL_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-    {
-        ((CButton *)GetDlgItem(IDC_RADIO_LOCAL_DOWNLOAD))->SetCheck(TRUE);
-        ((CButton *)GetDlgItem(IDC_RADIO_REMOTE_DOWNLOAD))->SetCheck(FALSE);
-        GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(FALSE);
-        GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
-    }
-    else
-    {
-        ((CButton *)GetDlgItem(IDC_RADIO_LOCAL_DOWNLOAD))->SetCheck(FALSE);
-        ((CButton *)GetDlgItem(IDC_RADIO_REMOTE_DOWNLOAD))->SetCheck(TRUE);
-        GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(TRUE);
-        GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(TRUE);
-    }
+
+    /* Task bale: Local load only; App / SC / OS / Font / Param / Logo. */
+    g_sConfigreInfo.m_byLoadType = LOCAL_DOWNLOAD;
+    ((CButton *)GetDlgItem(IDC_RADIO_LOCAL_DOWNLOAD))->SetCheck(TRUE);
+    ((CButton *)GetDlgItem(IDC_RADIO_REMOTE_DOWNLOAD))->SetCheck(FALSE);
+    GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(TRUE);
+    GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
     GetConfig();
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -232,7 +247,7 @@ void CPageFileBale::OnButtonAddApp()
 {
     // TODO: Add your control notification handler code here
     int i;
-    char strDisplayInfo[300];
+    char strDisplayInfo[BALE_DISPLAY_INFO_LEN];
 	static char BASED_CODE szMergeFilter[] = _T("Application(*.bin)|*.bin||)");
     CString filter, strTemp;
 
@@ -275,24 +290,20 @@ void CPageFileBale::OnButtonAddApp()
             break;
         }
 
-        if (0xff==g_sConfigreInfo.m_byPosType)  // 首次添加应用程序需要选择机型
+        /* UN650: skip VPOS type dialog; keep a fixed default for bale header. */
+        if (g_sConfigreInfo.m_byPosType >= VPOS_TYPE_NUMBER)
         {
-            g_iFunctionSelect = 0;  // 设置成机型选择界面
-            CVPOSSelect SDlg;
-            if (SDlg.DoModal() != IDOK)
-            {
-                return ;
-            }
+            g_sConfigreInfo.m_byPosType = 0;
         }
-/*        else
-        {
-            sprintf(strDisplayInfo, "PosType=%d", g_sConfigreInfo.m_byPosType);
-            MessageBox(strDisplayInfo);
-        }*/
-
         memset(strDisplayInfo, 0, sizeof(strDisplayInfo));
-        sprintf(strDisplayInfo, "{APP}{%s}{%s}", 
-            &g_strVposSelect[g_sConfigreInfo.m_byPosType][0], strTemp.GetBuffer(0));
+        if (_snprintf(strDisplayInfo, sizeof(strDisplayInfo), "{APP}{%s}{%s}",
+                &g_strVposSelect[g_sConfigreInfo.m_byPosType][0],
+                strTemp.GetBuffer(0)) < 0)
+        {
+            MessageBox("Application path is too long.");
+            return ;
+        }
+        strDisplayInfo[sizeof(strDisplayInfo) - 1] = 0;
 
         for (i=0; i<m_iAppFileNumber; i++)
         {
@@ -307,10 +318,8 @@ void CPageFileBale::OnButtonAddApp()
         m_sAppFileInfo[m_iAppFileNumber].m_hTree 
             = m_tcTreeCtrlTaskList.InsertItem(strDisplayInfo);
         m_iAppFileNumber++;
-        if (m_iAppFileNumber >= APP_FILE_MAX_NUM)
-        {
-            GetDlgItem(IDC_BUTTON_ADD_APP)->EnableWindow(FALSE);
-        }
+        /* One App per task: gray out and disable the button once added. */
+        GetDlgItem(IDC_BUTTON_ADD_APP)->EnableWindow(FALSE);
         UpdateData(FALSE);    // 更新界面
     }
 }
@@ -329,11 +338,16 @@ void CPageFileBale::OnButtonAddFont()
 {
     // TODO: Add your control notification handler code here
     int iRet;
-	static char BASED_CODE szMergeFilter[] = _T("Font(*.bin)|*.bin||)");
+    static char BASED_CODE szMergeFilter[] = "Font (*.bin)|*.bin||";
     CString filter, strTemp;
+    LPCSTR pszPath;
+
+    /* FlatButton may still hold mouse capture from the click; release before modal. */
+    m_btnAddFontFile.CancelHover();
+
     filter = szMergeFilter;
-    CFileDialog dlg(TRUE, NULL, strTemp, 
-        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST,filter, 0);
+    CFileDialog dlg(TRUE, NULL, NULL,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, this);
 
     if (dlg.DoModal() != IDOK)
     {
@@ -341,7 +355,8 @@ void CPageFileBale::OnButtonAddFont()
     }
 
     strTemp = dlg.GetPathName();
-    iRet = CheckViewAtFont(strTemp.GetBuffer(0));
+    pszPath = (LPCSTR)strTemp;
+    iRet = CheckViewAtFont((char*)pszPath);
     if (-2 == iRet)
     {
         MessageBox("Open font file error!");
@@ -353,24 +368,18 @@ void CPageFileBale::OnButtonAddFont()
         return ;
     }
 
-    g_iFunctionSelect = 1;  // 设置成字库选择界面
-    CVPOSSelect SDlg;
-    if (SDlg.DoModal() != IDOK)
+    /* UN650: one shared UFL font; skip Thermal/Stylus dialog, always THERMAL. */
+    g_sConfigreInfo.m_byPrinterType = 0;
+    if (_snprintf((char*)m_sFontFileInfo.m_abyDisplayInfo, BALE_DISPLAY_INFO_LEN,
+            "{FONT}{THERMAL}{%s}", pszPath) < 0)
     {
+        MessageBox("Font path is too long.");
         return ;
     }
-    if (0 == g_sConfigreInfo.m_byPrinterType)
-    {
-        sprintf((char*)m_sFontFileInfo.m_abyDisplayInfo, 
-            "{FONT}{THERMAL}{%s}", strTemp.GetBuffer(0));
-    }
-    else
-    {
-        sprintf((char*)m_sFontFileInfo.m_abyDisplayInfo, 
-            "{FONT}{STYLUS}{%s}", strTemp.GetBuffer(0));
-    }
+    m_sFontFileInfo.m_abyDisplayInfo[BALE_DISPLAY_INFO_LEN - 1] = 0;
     m_sFontFileInfo.m_hTree = m_tcTreeCtrlTaskList.InsertItem(
         (char*)m_sFontFileInfo.m_abyDisplayInfo);
+    m_btnAddFontFile.CancelHover();
     GetDlgItem(IDC_BUTTON_ADD_FONT)->EnableWindow(FALSE);
 }
 
@@ -385,6 +394,24 @@ void CPageFileBale::OnButtonAddFont()
   1、 黄俊斌     2007-09-07   V1.0        创建
   2、 黄俊斌     2008-05-19   V1.1        增加带有所属应用名的参数
 ****************************************************************************/
+/* One Param per bale task list: gray Add Param when any PARAM/PARA exists. */
+static void UpdateParamAddButton(CPageFileBale *pPage)
+{
+    int i;
+    int iHas = 0;
+
+    for (i = 0; i < pPage->m_iAppendFileNumber; i++)
+    {
+        if (   (BALE_TASK_PARAM == pPage->m_sAppendFileInf[i].m_byTaskType)
+            || (BALE_TASK_PARA == pPage->m_sAppendFileInf[i].m_byTaskType) )
+        {
+            iHas = 1;
+            break;
+        }
+    }
+    pPage->GetDlgItem(IDC_BUTTON_ADD_PARAM)->EnableWindow(iHas ? FALSE : TRUE);
+}
+
 void CPageFileBale::OnButtonAddParam() 
 {
     // TODO: Add your control notification handler code here
@@ -400,50 +427,16 @@ void CPageFileBale::OnButtonAddParam()
             break;
         }
     }
+    /* Local: attach to selected App when possible; else standalone Param. */
     if (0 == iFlag)
     {
-        if (LOCAL_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-        {
-            MessageBox("Select application please!");
-            return ;
-        }
-        iAppNameSelectFlag = 1;
+        iAppNameSelectFlag = 1; /* standalone */
     }
     else
     {
-        if (REMOTE_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-        {
-            g_iFunctionSelect = 6;  // 设置成“是否输入应用程序名？”选择界面
-            CVPOSSelect SDlg1;
-            if (SDlg1.DoModal() != IDOK)
-            {
-                iAppNameSelectFlag = 0;
-            }
-            else
-            {
-                iAppNameSelectFlag = 1;
-            }
-        }
-        else
-        {
-            iAppNameSelectFlag = 0;
-        }
+        iAppNameSelectFlag = 0; /* under selected App */
     }
-    if (1 == iAppNameSelectFlag)
-    {
-        g_iFunctionSelect = 5;  // 设置成“应用程序名：”选择界面
-        CVPOSSelect SDlg2;
-        if (SDlg2.DoModal() != IDOK)
-        {
-            return ;
-        }
-        if (0 != g_iSelectIndex)
-        {
-            MessageBox("You have no input application name");
-            return ;
-        }
-    }
-    
+
 	static char BASED_CODE szMergeFilter[] = _T("Param file(*.*)|*.*||)");
     CString filter, strTemp;
     filter = szMergeFilter;
@@ -465,7 +458,7 @@ void CPageFileBale::OnButtonAddParam()
     i = CheckParam(strTemp.GetBuffer(0));
     if (-2 == i)
     {
-        MessageBox("Open param file fault.");
+        MessageBox("Open param file failed.");
         return ;
     }
     if (-1 == i)
@@ -474,12 +467,21 @@ void CPageFileBale::OnButtonAddParam()
         return ;
     }
 
+    if (m_iAppendFileNumber >= APPEND_FILE_MAX_NUM)
+    {
+        MessageBox("Append file number is maximal.");
+        return ;
+    }
     if (0 == iAppNameSelectFlag)
     {
         m_sAppendFileInf[m_iAppendFileNumber].m_hFatherTree = hTempTree;
         m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARAM;
-        sprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-            "{PARAM}{%s}", strTemp.GetBuffer(0));
+        if (_snprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo,
+                BALE_DISPLAY_INFO_LEN, "{PARAM}{%s}", strTemp.GetBuffer(0)) < 0)
+        {
+            MessageBox("Param path is too long.");
+            return ;
+        }
         for (i=0; i<m_iAppendFileNumber; i++)
         {
             if (BALE_TASK_PARAM == m_sAppendFileInf[i].m_byTaskType)
@@ -500,12 +502,19 @@ void CPageFileBale::OnButtonAddParam()
             hTempTree, TVI_SORT);
         m_iAppendFileNumber++;
         m_tcTreeCtrlTaskList.Expand(hTempTree, TVE_EXPAND);
+        UpdateParamAddButton(this);
     }
     else
     {
+        /* Standalone Param for Local (no App name dialog). */
         m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARA;
-        sprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-            "{PARA}{%s}{%s}", g_strInputAppName, strTemp.GetBuffer(0));
+        if (_snprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo,
+                BALE_DISPLAY_INFO_LEN, "{PARA}{_}{%s}",
+                strTemp.GetBuffer(0)) < 0)
+        {
+            MessageBox("Param path is too long.");
+            return ;
+        }
         for (i=0; i<m_iAppendFileNumber; i++)
         {
             if (BALE_TASK_PARA == m_sAppendFileInf[i].m_byTaskType)
@@ -524,6 +533,7 @@ void CPageFileBale::OnButtonAddParam()
             = m_tcTreeCtrlTaskList.InsertItem(
             (char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo);
         m_iAppendFileNumber++;
+        UpdateParamAddButton(this);
     }
 }
 
@@ -653,6 +663,7 @@ void CPageFileBale::OnButtonDelTask()
                     &m_sAppendFileInf[m_iAppendFileNumber], 
                     sizeof(APPEND_FILE_LIST));
             }
+            UpdateParamAddButton(this);
             IntiPosType();
             return ;
         }
@@ -680,8 +691,11 @@ void CPageFileBale::OnButtonDelTask()
         if (hTempTree == m_sAppFileInfo[i].m_hTree)
         {
             m_tcTreeCtrlTaskList.DeleteItem(hTempTree);
-            GetDlgItem(IDC_BUTTON_ADD_APP)->EnableWindow(TRUE);
             m_iAppFileNumber--;
+            if (0 == m_iAppFileNumber)
+            {
+                GetDlgItem(IDC_BUTTON_ADD_APP)->EnableWindow(TRUE);
+            }
             if (i != m_iAppFileNumber)
             {
                 memcpy(&m_sAppFileInfo[i], &m_sAppFileInfo[m_iAppFileNumber], 
@@ -691,7 +705,8 @@ void CPageFileBale::OnButtonDelTask()
             {
                 if (   (   (BALE_TASK_PARAM==m_sAppendFileInf[j].m_byTaskType)
                         || (BALE_TASK_DATAM==m_sAppendFileInf[j].m_byTaskType) )
-                    && (hTempTree==m_sAppendFileInf[j].m_hTree))
+                    && (hTempTree==m_sAppendFileInf[j].m_hFatherTree
+                        || hTempTree==m_sAppendFileInf[j].m_hTree))
                 {
                     m_iAppendFileNumber--;
                     if (j != m_iAppendFileNumber)
@@ -700,8 +715,10 @@ void CPageFileBale::OnButtonDelTask()
                             &m_sAppendFileInf[m_iAppendFileNumber],
                             sizeof(APPEND_FILE_LIST));
                     }
+                    j--;
                 }
             }
+            UpdateParamAddButton(this);
             IntiPosType();
             return ;
         }
@@ -711,6 +728,30 @@ void CPageFileBale::OnButtonDelTask()
         m_tcTreeCtrlTaskList.DeleteItem(m_sVosFileInfo.m_hTree);
         m_bAddVosFlag = FALSE;
         GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(TRUE);
+        IntiPosType();
+        return;
+    }
+    if ((m_bAddScAppFlag) && (hTempTree==m_sScAppFileInfo.m_hTree))
+    {
+        m_tcTreeCtrlTaskList.DeleteItem(m_sScAppFileInfo.m_hTree);
+        m_bAddScAppFlag = FALSE;
+        GetDlgItem(IDC_BUTTON_ADD_DATA_FILE)->EnableWindow(TRUE);
+        IntiPosType();
+        return;
+    }
+    if ((m_bAddLogoFlag) && (hTempTree==m_sLogoFileInfo.m_hTree))
+    {
+        m_tcTreeCtrlTaskList.DeleteItem(m_sLogoFileInfo.m_hTree);
+        m_bAddLogoFlag = FALSE;
+        GetDlgItem(IDC_BUTTON_ADD_LOGO)->EnableWindow(TRUE);
+        IntiPosType();
+        return;
+    }
+    /* WiFi packing removed: ignore leftover WIFI tree nodes if any. */
+    if ((m_bAddWifiFlag) && (hTempTree==m_sWifiFileInfo.m_hTree))
+    {
+        m_tcTreeCtrlTaskList.DeleteItem(m_sWifiFileInfo.m_hTree);
+        m_bAddWifiFlag = FALSE;
         IntiPosType();
     }
 }
@@ -734,7 +775,8 @@ void CPageFileBale::OnButtonStartBale()
     char *p;
     FILE *fpBale, *fpTemp;
 
-    static char BASED_CODE szMergeFilter[] = _T("Save file(*.*)||_*.*||)");
+    static char BASED_CODE szMergeFilter[] =
+        _T("Bale file (*.bin)|*.bin|All Files (*.*)|*.*||");
     CString filter, strSavePath;
     filter = szMergeFilter;
 
@@ -749,8 +791,9 @@ void CPageFileBale::OnButtonStartBale()
     }
     SaveConfig();
 
-    CFileDialog dlg(FALSE, NULL, NULL, 
-        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, 0);
+    /* Default extension .bin so Save As appends .bin when user omits it. */
+    CFileDialog dlg(FALSE, _T("bin"), _T("bale.bin"),
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT, filter, 0);
     if (dlg.DoModal() != IDOK)
     {
         return ;
@@ -808,9 +851,17 @@ void CPageFileBale::OnButtonStartBale()
     {
         DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
         p = strstr((char*)&m_sAppFileInfo[i].m_abyDisplayInfo[6], "}{");
+        if (NULL == p)
+        {
+            continue;
+        }
         p += 2;
         strcpy((char*)strFileName, (char*)p);
         iLen = strlen((char*)strFileName);
+        if (iLen < 2)
+        {
+            continue;
+        }
         strFileName[iLen-1] = 0;
         fpTemp = fopen((char*)strFileName, "rb");
         if (NULL != fpTemp)
@@ -892,7 +943,7 @@ void CPageFileBale::OnButtonStartBale()
 
                 i = 0;
                 memset(strTemp, 0, 40);
-                while (1)
+                while (i < 31)
                 {
                     strTemp[i] = m_sAppendFileInf[j].m_abyDisplayInfo[7+i];
                     if ('}'==strTemp[i])
@@ -902,6 +953,7 @@ void CPageFileBale::OnButtonStartBale()
                     }
                     i++;
                 }
+                strTemp[31] = 0;
                 fwrite(strTemp, 1, 32, fpBale);
 
                 memset(strTemp, 0, sizeof(strTemp));
@@ -976,7 +1028,61 @@ void CPageFileBale::OnButtonStartBale()
         }
         }
     }
-    
+
+    /* SC App task (same envelope as OS/App: type + pos + payload). */
+    if (m_bAddScAppFlag)
+    {
+        DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
+        p = strstr((char*)m_sScAppFileInfo.m_abyDisplayInfo, "}{");
+        if (NULL != p) p = strstr(p + 2, "}{"); /* {SCAPP}{pos}{path} */
+        if (NULL != p)
+        {
+            p += 2;
+            strcpy((char*)strFileName, (char*)p);
+            iLen = strlen((char*)strFileName);
+            strFileName[iLen-1] = 0;
+            fpTemp = fopen((char*)strFileName, "rb");
+            if (NULL != fpTemp)
+            {
+                strTemp[0] = BALE_TASK_SC_APP;
+                strTemp[1] = g_abyPosType[g_sConfigreInfo.m_byPosType];
+                fwrite(strTemp, 1, 2, fpBale);
+                AddFileToBaleFile(fpBale, fpTemp, &k);
+                fclose(fpTemp);
+                iOffset += 2 + k;
+                iTaskNum++;
+            }
+        }
+    }
+
+    /* Logo: type + pos + payload (same envelope as SC). */
+    if (m_bAddLogoFlag)
+    {
+        DwordToByte((DWORD)iOffset, &strTail[iTaskNum*4]);
+        p = strstr((char*)m_sLogoFileInfo.m_abyDisplayInfo, "}{");
+        if (NULL != p) p = strstr(p + 2, "}{"); /* {LOGO}{pos}{path} */
+        if (NULL != p)
+        {
+            p += 2;
+            strcpy((char*)strFileName, (char*)p);
+            iLen = strlen((char*)strFileName);
+            strFileName[iLen-1] = 0;
+            fpTemp = fopen((char*)strFileName, "rb");
+            if (NULL != fpTemp)
+            {
+                strTemp[0] = BALE_TASK_LOGO;
+                strTemp[1] = g_abyPosType[g_sConfigreInfo.m_byPosType];
+                fwrite(strTemp, 1, 2, fpBale);
+                AddFileToBaleFile(fpBale, fpTemp, &k);
+                fclose(fpTemp);
+                iOffset += 2 + k;
+                iTaskNum++;
+            }
+        }
+    }
+
+    /* WiFi packing removed (use Download page). Old bale with WIFI still downloads. */
+
     strTail[iTaskNum*4] = (BYTE)iTaskNum;
     fwrite(strTail, 1, iTaskNum*4+1, fpBale);
     fclose(fpBale);
@@ -1036,6 +1142,14 @@ int CPageFileBale::GetTaskNumber()
     {
         iCount++;
     }
+    if (m_bAddScAppFlag)
+    {
+        iCount++;
+    }
+    if (m_bAddLogoFlag)
+    {
+        iCount++;
+    }
     return iCount;
 }
 
@@ -1052,7 +1166,7 @@ int CPageFileBale::GetTaskNumber()
 ****************************************************************************/
 void CPageFileBale::IntiPosType()
 {
-    if ((0==m_iAppFileNumber) && (!m_bAddVosFlag))
+    if ((0==m_iAppFileNumber) && (!m_bAddVosFlag) && (!m_bAddScAppFlag))
     {
         g_sConfigreInfo.m_byPosType = 0xff;
     }
@@ -1142,6 +1256,19 @@ void CPageFileBale::SaveConfig()
             strlen((char*)m_sVosFileInfo.m_abyDisplayInfo), fp);
         fwrite("\n", 1, 1, fp);
     }
+    if (m_bAddScAppFlag)
+    {
+        fwrite(m_sScAppFileInfo.m_abyDisplayInfo, 1,
+            strlen((char*)m_sScAppFileInfo.m_abyDisplayInfo), fp);
+        fwrite("\n", 1, 1, fp);
+    }
+    if (m_bAddLogoFlag)
+    {
+        fwrite(m_sLogoFileInfo.m_abyDisplayInfo, 1,
+            strlen((char*)m_sLogoFileInfo.m_abyDisplayInfo), fp);
+        fwrite("\n", 1, 1, fp);
+    }
+    /* Do not persist {WIFI}: packing WiFi removed. */
     fclose(fp);
 }
 
@@ -1186,7 +1313,7 @@ void CPageFileBale::GetConfig()
         return ;
     }
 
-    memset(strBuffer, 0, sizeof(strBuffer));
+    memset(strBuffer, 0, j+2);
     fseek(fp, 0, SEEK_SET);
     i = fread(strBuffer, 1, j, fp);
     fclose(fp);
@@ -1214,24 +1341,44 @@ void CPageFileBale::GetConfig()
 ****************************************************************************/
 void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
 {
-    int i, j = 0;//, k;
-    char strTemp[300], *p;
+    int i, j = 0;
+    int iLineOverflow = 0;
+    char strTemp[BALE_DISPLAY_INFO_LEN], *p;
 
     m_iDelAppTaskNumber = 0;
     m_iAppFileNumber = 0;
     m_iAppendFileNumber = 0;
+    m_bAddVosFlag = FALSE;
+    m_bAddScAppFlag = FALSE;
+    m_bAddLogoFlag = FALSE;
+    m_bAddWifiFlag = FALSE;
 
     m_tcTreeCtrlTaskList.DeleteAllItems();
     for (i=0; i<iConfigLen; i++)
     {
         if (0x0a != strInConfig[i])
         {
+            /* Drop overlong / corrupt lines instead of writing past strTemp. */
+            if (j >= (int)(sizeof(strTemp) - 1))
+            {
+                iLineOverflow = 1;
+                continue;
+            }
             strTemp[j++] = strInConfig[i];
         }
         else
         {
             strTemp[j] = 0;
             j = 0;
+            if (iLineOverflow)
+            {
+                iLineOverflow = 0;
+                continue;  /* skip corrupt line longer than buffer */
+            }
+            if (0 == strTemp[0])
+            {
+                continue;
+            }
 
             p = strstr(strTemp, "{CREATESYSTEM}");
             if (NULL!=p)
@@ -1252,7 +1399,7 @@ void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
             }
 
             p = strstr(strTemp, "{DELAPP}");
-            if (NULL != p)
+            if ((NULL != p) && (m_iDelAppTaskNumber < APP_FILE_MAX_NUM))
             {
                 strcpy((char*)m_sDelAppInfo[m_iDelAppTaskNumber].m_abyDisplayInfo, 
                     strTemp);
@@ -1276,50 +1423,62 @@ void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
             }
 
             p = strstr(strTemp, "{APP}");
-            if (NULL != p)
+            if ((NULL != p) && (m_iAppFileNumber < APP_FILE_MAX_NUM))
             {
                 strcpy((char*)m_sAppFileInfo[m_iAppFileNumber].m_abyDisplayInfo, 
                     strTemp);
                 m_sAppFileInfo[m_iAppFileNumber].m_hTree 
                     = m_tcTreeCtrlTaskList.InsertItem(strTemp);
                 m_iAppFileNumber++;
+                GetDlgItem(IDC_BUTTON_ADD_APP)->EnableWindow(FALSE);
             }
 
-            m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARAM;
-            p = strstr(strTemp, "{PARAM}");
-            if (NULL == p)
+            if (m_iAppendFileNumber < APPEND_FILE_MAX_NUM)
             {
-                m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATAM;
-                p = strstr(strTemp, "{DATAM}");
-            }
-            if ((NULL!=p) && (0!=m_iAppFileNumber))
-            {
-                strcpy((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-                    strTemp);
-                m_sAppendFileInf[m_iAppendFileNumber].m_hFatherTree
-                    = m_sAppFileInfo[m_iAppFileNumber-1].m_hTree;
-                m_sAppendFileInf[m_iAppendFileNumber].m_hTree
-                    = m_tcTreeCtrlTaskList.InsertItem(strTemp, 
-                    m_sAppFileInfo[m_iAppFileNumber-1].m_hTree, TVI_SORT);
-                m_tcTreeCtrlTaskList.Expand(
-                    m_sAppFileInfo[m_iAppFileNumber-1].m_hTree, TVE_EXPAND);
-                m_iAppendFileNumber++;
+                m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARAM;
+                p = strstr(strTemp, "{PARAM}");
+                if (NULL == p)
+                {
+                    m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATAM;
+                    p = strstr(strTemp, "{DATAM}");
+                }
+                if ((NULL!=p) && (0!=m_iAppFileNumber))
+                {
+                    strcpy((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
+                        strTemp);
+                    m_sAppendFileInf[m_iAppendFileNumber].m_hFatherTree
+                        = m_sAppFileInfo[m_iAppFileNumber-1].m_hTree;
+                    m_sAppendFileInf[m_iAppendFileNumber].m_hTree
+                        = m_tcTreeCtrlTaskList.InsertItem(strTemp, 
+                        m_sAppFileInfo[m_iAppFileNumber-1].m_hTree, TVI_SORT);
+                    m_tcTreeCtrlTaskList.Expand(
+                        m_sAppFileInfo[m_iAppFileNumber-1].m_hTree, TVE_EXPAND);
+                    m_iAppendFileNumber++;
+                    UpdateParamAddButton(this);
+                }
             }
 
-            m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARA;
-            p = strstr(strTemp, "{PARA}");
-            if (NULL == p)
+            if (m_iAppendFileNumber < APPEND_FILE_MAX_NUM)
             {
-                m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATA;
-                p = strstr(strTemp, "{DATA}");
-            }
-            if (NULL != p)
-            {
-                strcpy((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-                    strTemp);
-                m_sAppendFileInf[m_iAppendFileNumber].m_hTree
-                    = m_tcTreeCtrlTaskList.InsertItem(strTemp);
-                m_iAppendFileNumber++;
+                m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_PARA;
+                p = strstr(strTemp, "{PARA}");
+                if (NULL == p)
+                {
+                    m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATA;
+                    p = strstr(strTemp, "{DATA}");
+                }
+                if (NULL != p)
+                {
+                    strcpy((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
+                        strTemp);
+                    m_sAppendFileInf[m_iAppendFileNumber].m_hTree
+                        = m_tcTreeCtrlTaskList.InsertItem(strTemp);
+                    m_iAppendFileNumber++;
+                    if (BALE_TASK_PARA == m_sAppendFileInf[m_iAppendFileNumber - 1].m_byTaskType)
+                    {
+                        UpdateParamAddButton(this);
+                    }
+                }
             }
 
             p = strstr(strTemp, "{OS}");
@@ -1337,6 +1496,26 @@ void CPageFileBale::ParseAndDisplayConfig(char *strInConfig, int iConfigLen)
                     GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(FALSE);
                 }
             }
+
+            p = strstr(strTemp, "{SCAPP}");
+            if ((NULL != p) && (!m_bAddScAppFlag))
+            {
+                strcpy((char*)m_sScAppFileInfo.m_abyDisplayInfo, strTemp);
+                m_sScAppFileInfo.m_hTree = m_tcTreeCtrlTaskList.InsertItem(strTemp);
+                m_bAddScAppFlag = TRUE;
+                GetDlgItem(IDC_BUTTON_ADD_DATA_FILE)->EnableWindow(FALSE);
+            }
+
+            p = strstr(strTemp, "{LOGO}");
+            if ((NULL != p) && (!m_bAddLogoFlag))
+            {
+                strcpy((char*)m_sLogoFileInfo.m_abyDisplayInfo, strTemp);
+                m_sLogoFileInfo.m_hTree = m_tcTreeCtrlTaskList.InsertItem(strTemp);
+                m_bAddLogoFlag = TRUE;
+                GetDlgItem(IDC_BUTTON_ADD_LOGO)->EnableWindow(FALSE);
+            }
+
+            /* Legacy {WIFI} in bale config is ignored (packing WiFi removed). */
         }
     }
 }
@@ -1388,8 +1567,7 @@ BOOL CPageFileBale::CheckParamFileNameValidate(char *strInName)
 void CPageFileBale::OnButtonAddVos() 
 {
     // TODO: Add your control notification handler code here
-    int i;
-    char strDisplayInfo[300];
+    char strDisplayInfo[BALE_DISPLAY_INFO_LEN];
     static char BASED_CODE szMergeFilter[] = _T("OS(*.bin)|*.bin||)");
     CString filter, strTemp;
 
@@ -1401,32 +1579,22 @@ void CPageFileBale::OnButtonAddVos()
     if (dlg.DoModal() == IDOK)
     {
         strTemp = dlg.GetPathName();
-        i = CheckVOS(strTemp.GetBuffer(0));
-        switch (i)
-        {
-        case -1:
-            MessageBox("This file is not OS file.");
-            return;
-        case -2:
-            MessageBox("Open application file error.");
-            return;
-        default:
-            break;
-        }
+        /* UN650 OS bin has no ViewAt VOS tail tag; align with Download (no CheckVOS). */
 
-        if (0xff==g_sConfigreInfo.m_byPosType)  // 首次添加应用程序需要选择机型
+        /* UN650: skip VPOS type dialog; keep a fixed default for bale header. */
+        if (g_sConfigreInfo.m_byPosType >= VPOS_TYPE_NUMBER)
         {
-            g_iFunctionSelect = 0;  // 设置成机型选择界面
-            CVPOSSelect SDlg;
-            if (SDlg.DoModal() != IDOK)
-            {
-                return ;
-            }
+            g_sConfigreInfo.m_byPosType = 0;
         }
-
         memset(strDisplayInfo, 0, sizeof(strDisplayInfo));
-        sprintf(strDisplayInfo, "{OS}{%s}{%s}", 
-            &g_strVposSelect[g_sConfigreInfo.m_byPosType][0], strTemp.GetBuffer(0));
+        if (_snprintf(strDisplayInfo, sizeof(strDisplayInfo), "{OS}{%s}{%s}",
+                &g_strVposSelect[g_sConfigreInfo.m_byPosType][0],
+                strTemp.GetBuffer(0)) < 0)
+        {
+            MessageBox("OS path is too long.");
+            return ;
+        }
+        strDisplayInfo[sizeof(strDisplayInfo) - 1] = 0;
 
         strcpy((char*)m_sVosFileInfo.m_abyDisplayInfo, 
             strDisplayInfo);
@@ -1483,17 +1651,13 @@ void CPageFileBale::OnButtonDelAllApp()
 ****************************************************************************/
 void CPageFileBale::OnRadioRemoteDownload() 
 {
-    // TODO: Add your control notification handler code here
-    if (REMOTE_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-    {
-        return ;
-    }
-    g_sConfigreInfo.m_byLoadType = REMOTE_DOWNLOAD;
+    /* Remote load disabled: stay on Local. */
+    g_sConfigreInfo.m_byLoadType = LOCAL_DOWNLOAD;
+    ((CButton *)GetDlgItem(IDC_RADIO_LOCAL_DOWNLOAD))->SetCheck(TRUE);
+    ((CButton *)GetDlgItem(IDC_RADIO_REMOTE_DOWNLOAD))->SetCheck(FALSE);
     GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(TRUE);
-    if (OBJECT_INVALID == m_sCreateSystem.m_byValidFlag)
-    {
-        GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(TRUE);
-    }
+    GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
+    MessageBox("Remote load is disabled. Use Local load.");
 }
 
 /****************************************************************************
@@ -1508,47 +1672,9 @@ void CPageFileBale::OnRadioRemoteDownload()
 ****************************************************************************/
 void CPageFileBale::OnRadioLocalDownload() 
 {
-    // TODO: Add your control notification handler code here
-    int i;
-
-    if (LOCAL_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-    {
-        return ;
-    }
     g_sConfigreInfo.m_byLoadType = LOCAL_DOWNLOAD;
-    if (m_bAddVosFlag)
-    {
-        m_tcTreeCtrlTaskList.DeleteItem(m_sVosFileInfo.m_hTree);
-        m_bAddVosFlag = FALSE;
-    }
-    if (OBJECT_VALID == m_sDelAllApp.m_byValidFlag)
-    {
-        m_tcTreeCtrlTaskList.DeleteItem(m_sDelAllApp.m_hTree);
-        m_sDelAllApp.m_byValidFlag = OBJECT_INVALID;
-        for (i=0; i<m_iDelAppTaskNumber; i++)
-        {
-            m_sDelAppInfo[i].m_hTree = m_tcTreeCtrlTaskList.InsertItem(
-                (char*)m_sDelAppInfo[i].m_abyDisplayInfo);
-        }
-    }
-    GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(FALSE);
+    GetDlgItem(IDC_BUTTON_ADD_VOS)->EnableWindow(TRUE);
     GetDlgItem(IDC_BUTTON_ADD_DEL_ALL_APP)->EnableWindow(FALSE);
-
-    for (i=0; i<m_iAppendFileNumber; i++)
-    {
-        if (   (BALE_TASK_PARA==m_sAppendFileInf[i].m_byTaskType)
-            || (BALE_TASK_DATA==m_sAppendFileInf[i].m_byTaskType) )
-        {
-            m_tcTreeCtrlTaskList.DeleteItem(m_sAppendFileInf[i].m_hTree);
-            m_iAppendFileNumber--;
-            if (i != m_iAppendFileNumber)
-            {
-                memcpy(&m_sAppendFileInf[i], 
-                    &m_sAppendFileInf[m_iAppendFileNumber], 
-                    sizeof(APPEND_FILE_LIST));
-            }
-        }
-    }
 }
 
 /****************************************************************************
@@ -1581,142 +1707,95 @@ void CPageFileBale::OnButtonSaveInfo()
 
 void CPageFileBale::OnButtonAddDataFile() 
 {
-    // TODO: Add your control notification handler code here
-    HTREEITEM hTempTree;
-    int i, iFlag = 0, iAppNameSelectFlag = 0;
-
-    hTempTree = m_tcTreeCtrlTaskList.GetSelectedItem();
-    for (i=0; i<m_iAppFileNumber; i++)
-    {
-        if (hTempTree == m_sAppFileInfo[i].m_hTree)
-        {
-            iFlag = 1;
-            break;
-        }
-    }
-    if (0 == iFlag)
-    {
-        if (LOCAL_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-        {
-            MessageBox("  Select one application please.  ");
-            return ;
-        }
-        iAppNameSelectFlag = 1;
-    }
-    else
-    {
-        if (REMOTE_DOWNLOAD == g_sConfigreInfo.m_byLoadType)
-        {
-            g_iFunctionSelect = 6;  // 设置成“是否输入应用程序名？”选择界面
-            CVPOSSelect SDlg1;
-            if (SDlg1.DoModal() != IDOK)
-            {
-                iAppNameSelectFlag = 0;
-            }
-            else
-            {
-                iAppNameSelectFlag = 1;
-            }
-        }
-        else
-        {
-            iAppNameSelectFlag = 0;
-        }
-    }
-    if (1 == iAppNameSelectFlag)
-    {
-        g_iFunctionSelect = 5;  // 设置成“应用程序名：”选择界面
-        CVPOSSelect SDlg2;
-        if (SDlg2.DoModal() != IDOK)
-        {
-            return ;
-        }
-        if (0 != g_iSelectIndex)
-        {
-            MessageBox("Not input application name.");
-            return ;
-        }
-    }
-    
-	static char BASED_CODE szMergeFilter[] = _T("Data file(*.*)|*.*||)");
+    /* Button caption is SC App (Data download removed from Task bale). */
+    char strDisplayInfo[BALE_DISPLAY_INFO_LEN];
+    static char BASED_CODE szMergeFilter[] = _T("SC App(*.bin)|*.bin|All(*.*)|*.*||)");
     CString filter, strTemp;
+
+    if (m_bAddScAppFlag)
+    {
+        MessageBox("SC App is already in the task list.");
+        return;
+    }
+
     filter = szMergeFilter;
-
-    CFileDialog dlg(TRUE, NULL, strTemp, 
-        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST,filter, 0);
-
+    CFileDialog dlg(TRUE, NULL, strTemp,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, 0);
     if (dlg.DoModal() != IDOK)
     {
-        return ;
+        return;
     }
-
     strTemp = dlg.GetPathName();
-    if (!CheckParamFileNameValidate(strTemp.GetBuffer(0)))
+
+    /* UN650: skip VPOS type dialog; keep a fixed default for bale header. */
+    if (g_sConfigreInfo.m_byPosType >= VPOS_TYPE_NUMBER)
     {
-        MessageBox("Data file name length must from 1 byte to 15 bytes.");
-        return ;
-    }
-    i = CheckDataFile(strTemp.GetBuffer(0));
-    if (-2 == i)
-    {
-        MessageBox("Open data file error.");
-        return ;
-    }
-    if (-1 == i)
-    {
-        MessageBox("The file not data file.");
-        return ;
+        g_sConfigreInfo.m_byPosType = 0;
     }
 
-    if (0 == iAppNameSelectFlag)
+    memset(strDisplayInfo, 0, sizeof(strDisplayInfo));
+    if (_snprintf(strDisplayInfo, sizeof(strDisplayInfo), "{SCAPP}{%s}{%s}",
+            &g_strVposSelect[g_sConfigreInfo.m_byPosType][0],
+            strTemp.GetBuffer(0)) < 0)
     {
-        m_sAppendFileInf[m_iAppendFileNumber].m_hFatherTree = hTempTree;
-        m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATAM;
-        sprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-            "{DATAM}{%s}", strTemp.GetBuffer(0));
-        for (i=0; i<m_iAppendFileNumber; i++)
-        {
-            if (BALE_TASK_DATAM == m_sAppendFileInf[i].m_byTaskType)
-            {
-                iFlag = strcmp(
-                    (char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo,
-                    (char*)m_sAppendFileInf[i].m_abyDisplayInfo);
-                if (0 == iFlag)
-                {
-                    MessageBox("You can not add a data file to the same application.");
-                    return ;
-                }
-            }
-        }
-        m_sAppendFileInf[m_iAppendFileNumber].m_hTree 
-            = m_tcTreeCtrlTaskList.InsertItem(
-            (char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-            hTempTree, TVI_SORT);
-        m_iAppendFileNumber++;
-        m_tcTreeCtrlTaskList.Expand(hTempTree, TVE_EXPAND);
+        MessageBox("SC App path is too long.");
+        return;
     }
-    else
+    strDisplayInfo[sizeof(strDisplayInfo) - 1] = 0;
+    strcpy((char*)m_sScAppFileInfo.m_abyDisplayInfo, strDisplayInfo);
+    m_sScAppFileInfo.m_hTree = m_tcTreeCtrlTaskList.InsertItem(strDisplayInfo);
+    m_bAddScAppFlag = TRUE;
+    GetDlgItem(IDC_BUTTON_ADD_DATA_FILE)->EnableWindow(FALSE);
+    UpdateData(FALSE);
+}
+
+void CPageFileBale::OnButtonAddLogo()
+{
+    char strDisplayInfo[BALE_DISPLAY_INFO_LEN];
+    static char BASED_CODE szMergeFilter[] = _T("Logo (*.*)|*.*||)");
+    CString filter, strTemp;
+
+    if (m_bAddLogoFlag)
     {
-        m_sAppendFileInf[m_iAppendFileNumber].m_byTaskType = BALE_TASK_DATA;
-        sprintf((char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo, 
-            "{DATA}{%s}{%s}", g_strInputAppName, strTemp.GetBuffer(0));
-        for (i=0; i<m_iAppendFileNumber; i++)
-        {
-            if (BALE_TASK_DATA == m_sAppendFileInf[i].m_byTaskType)
-            {
-                iFlag = strcmp(
-                    (char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo,
-                    (char*)m_sAppendFileInf[i].m_abyDisplayInfo);
-                if (0 == iFlag)
-                {
-                    MessageBox("You can not add a data file to the same application.");
-                    return ;
-                }
-            }
-        }
-        m_sAppendFileInf[m_iAppendFileNumber].m_hTree 
-            = m_tcTreeCtrlTaskList.InsertItem(
-            (char*)m_sAppendFileInf[m_iAppendFileNumber].m_abyDisplayInfo);
-        m_iAppendFileNumber++;
+        MessageBox("Logo is already in the task list.");
+        return;
     }
+
+    m_btnAddLogoFile.CancelHover();
+    filter = szMergeFilter;
+    CFileDialog dlg(TRUE, NULL, strTemp,
+        OFN_HIDEREADONLY|OFN_OVERWRITEPROMPT|OFN_FILEMUSTEXIST, filter, this);
+    if (dlg.DoModal() != IDOK)
+    {
+        return;
+    }
+    strTemp = dlg.GetPathName();
+
+    if (g_sConfigreInfo.m_byPosType >= VPOS_TYPE_NUMBER)
+    {
+        g_sConfigreInfo.m_byPosType = 0;
+    }
+
+    memset(strDisplayInfo, 0, sizeof(strDisplayInfo));
+    if (_snprintf(strDisplayInfo, sizeof(strDisplayInfo), "{LOGO}{%s}{%s}",
+            &g_strVposSelect[g_sConfigreInfo.m_byPosType][0],
+            strTemp.GetBuffer(0)) < 0)
+    {
+        MessageBox("Logo path is too long.");
+        return;
+    }
+    strDisplayInfo[sizeof(strDisplayInfo) - 1] = 0;
+    strcpy((char*)m_sLogoFileInfo.m_abyDisplayInfo, strDisplayInfo);
+    m_sLogoFileInfo.m_hTree = m_tcTreeCtrlTaskList.InsertItem(strDisplayInfo);
+    m_bAddLogoFlag = TRUE;
+    m_btnAddLogoFile.CancelHover();
+    GetDlgItem(IDC_BUTTON_ADD_LOGO)->EnableWindow(FALSE);
+    UpdateData(FALSE);
+}
+
+void CPageFileBale::OnButtonAddWifi()
+{
+    /* Packing WiFi removed; use Download page WIFI checkbox. */
+    m_btnAddWifiFile.CancelHover();
+    MessageBox("WiFi is not available in Task bale. Use Download page.");
 }

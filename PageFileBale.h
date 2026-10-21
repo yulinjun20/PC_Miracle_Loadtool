@@ -15,16 +15,19 @@
 #define APP_FILE_MAX_NUM      25
 #define APPEND_FILE_MAX_NUM   50
 
+/* Display line: tags + full path; keep headroom past MAX_PATH. */
+#define BALE_DISPLAY_INFO_LEN  512
+
 typedef struct _CLEAR_TASK_TYPE_
 {
-    BYTE m_abyDisplayInfo[299];   // 界面上显示的信息
+    BYTE m_abyDisplayInfo[BALE_DISPLAY_INFO_LEN];   // 界面上显示的信息
     BYTE m_byValidFlag;           // 对象的有效性，0表示无效，1表示有效
     HTREEITEM m_hTree;            // 对象句柄
 }CLEAR_TASK_TYPE;
 
 typedef struct _COMMON_FILE_LIST_
 {
-    BYTE m_abyDisplayInfo[299];   // 界面上显示的信息
+    BYTE m_abyDisplayInfo[BALE_DISPLAY_INFO_LEN];   // 界面上显示的信息
     HTREEITEM m_hTree;            // 对象句柄
 }COMMON_FILE_LIST;
 
@@ -33,7 +36,7 @@ typedef struct _APPEND_FILE_LIST_
     // 2：参数文件；3：数据文件；6：参数文件，带有应用名；7：数据文件，带有应用名
     BYTE m_byTaskType;
 
-    BYTE m_abyDisplayInfo[271];   // 界面上显示的信息
+    BYTE m_abyDisplayInfo[BALE_DISPLAY_INFO_LEN];   // 界面上显示的信息
     HTREEITEM m_hTree;            // 对象句柄
     HTREEITEM m_hFatherTree;            // 对象句柄
 }APPEND_FILE_LIST;
@@ -90,6 +93,15 @@ public:
     COMMON_FILE_LIST m_sVosFileInfo;
     BOOL m_bAddVosFlag;
 
+    COMMON_FILE_LIST m_sScAppFileInfo;
+    BOOL m_bAddScAppFlag;
+
+    COMMON_FILE_LIST m_sLogoFileInfo;
+    BOOL m_bAddLogoFlag;
+
+    COMMON_FILE_LIST m_sWifiFileInfo;
+    BOOL m_bAddWifiFlag;
+
     
 // Dialog Data
     //{{AFX_DATA(CPageFileBale)
@@ -98,7 +110,9 @@ public:
     CFlatButton m_btnAddAppFile;
     CFlatButton m_btnAddFontFile;
     CFlatButton m_btnAddParamFile;
-    CFlatButton m_btnAddDataFile;
+    CFlatButton m_btnAddDataFile;   /* UI caption: SC App */
+    CFlatButton m_btnAddLogoFile;
+    CFlatButton m_btnAddWifiFile;
     CFlatButton m_btnAddDeleteApp;
     CFlatButton m_btnAddCreateFileSystem;
     CFlatButton m_btnDeleteTask;
@@ -135,7 +149,9 @@ protected:
     afx_msg void OnRadioRemoteDownload();
     afx_msg void OnRadioLocalDownload();
     afx_msg void OnButtonSaveInfo();
-    afx_msg void OnButtonAddDataFile();
+    afx_msg void OnButtonAddDataFile(); /* SC App add */
+    afx_msg void OnButtonAddLogo();
+    afx_msg void OnButtonAddWifi();
     //}}AFX_MSG
     DECLARE_MESSAGE_MAP()
 

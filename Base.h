@@ -71,7 +71,8 @@ struct CONFIG_INFO
     BYTE m_byWifiSelect;              // WIFI download select
     BYTE m_byLogoSelect;              // Logo download select
     DWORD m_dwPacketSize;             // download chunk prefer: 512 or 4096 (0->4096)
-    BYTE m_abyRev[236];               // reserved
+    BYTE m_byStopOnDownloadFail;      // 0=continue after fail (default), 1=stop
+    BYTE m_abyRev[235];               // reserved (was 236; 1 byte used above)
 };
 
 

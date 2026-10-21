@@ -16,6 +16,7 @@ static char THIS_FILE[] = __FILE__;
 CLoadToolsDlg *g_pCLoadToolsDlg = NULL;
 
 extern void PortClose();
+extern HANDLE g_lHandle;
 
 // �߳����б�־��FALSE:û���κ��߳�δ���У�TRUE:���߳�����
 BOOL g_bThreadRunFlag = FALSE;
@@ -338,9 +339,17 @@ HCURSOR CLoadToolsDlg::OnQueryDragIcon()
 
 void CLoadToolsDlg::OnClose() 
 {
-	// TODO: Add your message handler code here and/or call default
+    /* Stop download worker before tearing down UI / FlatButtons.
+     * SC End install can exceed 3s; wait longer to avoid AV on FlatButton. */
     g_pCLoadToolsDlg->m_PageApplication.m_bStopDownloadFlag = TRUE;
-    Sleep(50);
+    if (g_bThreadRunFlag && (NULL != g_lHandle))
+    {
+        WaitForSingleObject(g_lHandle, 15000);
+    }
+    else
+    {
+        Sleep(50);
+    }
     PortClose();
 	CDialog::OnClose();
 }
